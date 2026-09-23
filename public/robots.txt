@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://skpk.vercel.app/sitemap.xml
+
+Disallow: /login
+Disallow: /signup
+Disallow: /userprofile
+Disallow: /userpost
+Disallow: /postad
