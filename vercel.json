@@ -1,7 +1,51 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/home",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/signup",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/userpost",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/userprofile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/postad",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/aboutus",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/singleproductdetails/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/seller/:sellerId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/editad/:id",
       "destination": "/index.html"
     }
   ]
