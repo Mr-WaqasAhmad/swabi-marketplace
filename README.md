@@ -1,16 +1,55 @@
-# React + Vite
+# 🛒 Swabi Market — Buy & Sell Anything in Swabi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Swabi's first local online marketplace — a modern web app where people can **buy and sell anything** in their area. Built with React, Supabase, and Tailwind CSS.
 
-Currently, two official plugins are available:
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Visit_Site-0a4d3c?style=for-the-badge&logo=vercel)](https://swabi-marketplace.vercel.app)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## ✨ Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 🔐 **User Authentication** — Email/Phone signup & login
+- 📸 **Product Upload** — Auto image compression before upload
+- 🔍 **Search & Filter** — Search by title, category, location
+- 🏷️ **28 Categories** — From vehicles to electronics to property
+- 👤 **User Profile** — Update personal details anytime
+- 📊 **My Ads Dashboard** — Manage your posted ads
+- 📱 **Fully Responsive** — Works on mobile, tablet, desktop
+- 🎨 **Modern UI** — Clean design with Tailwind CSS
+- ⚡ **SEO Optimized** — Dynamic meta tags for every page
+- 🔒 **Secure** — Row Level Security (RLS) in Supabase
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, Vite, React Router |
+| **Styling** | Tailwind CSS |
+| **Backend** | Supabase (Auth, Postgres, Storage) |
+| **State Management** | React Query, Context API |
+| **Form Validation** | React Hook Form + Zod |
+| **Icons** | Lucide React |
+| **SEO** | React Helmet Async |
+| **Deployment** | Vercel |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- npm or yarn
+- Supabase account (free)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Mr-WaqasAhmad/swabi-marketplace.git
+   cd swabi-marketplace
