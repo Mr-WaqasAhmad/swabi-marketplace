@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://swabimarket.com/sitemap.xml
+
+# Block admin/protected pages (agar future mein hon)
+Disallow: /login
+Disallow: /signup
+Disallow: /userprofile

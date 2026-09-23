@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+}
+
+
+/* Custom Thin Scrollbar for All Browsers */
+
+/* Webkit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;              /* Vertical scrollbar ki chotai (bareek) */
+  height: 6px;             /* Horizontal scrollbar ki height */
+}
+
+::-webkit-scrollbar-track {
+  background: #effffb;     /* Light Mint background track */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #0a4d3c;     /* Dark Emerald Green color */
+  border-radius: 10px;      /* Fully rounded edges */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D4AF37;     /* Hover karne par Gold accent color */
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #0a4d3c #effffb;
+}
