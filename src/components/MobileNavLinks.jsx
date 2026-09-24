@@ -15,7 +15,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         }`}
     >
       {/* ✅ Home (Left) + About Us (Right) */}
-      <div className="flex items-center justify-evenly px-10 gap-10">
+      <div className="flex items-center justify-evenly px-10 pt-15 gap-10">
         <NavLink
           to="/"
           onClick={() => setIsOpened(false)}
@@ -57,7 +57,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
           onClick={() => setIsOpened(false)}
           className="flex items-center justify-center gap-3 pt-3 border-t border-gray-200"
         >
-          <div className="w-15 h-15 rounded-full flex justify-center items-center text-xl bg-[#3b053d] font-semibold text-white">
+          <div className="w-15 h-15 rounded-full flex justify-center items-center text-xl bg-[#3b053d] font-semibold text-white pb-15">
             {firstNameLetter || 'U'}
           </div>
         </Link>
@@ -65,7 +65,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         <Link
           to="/login"
           onClick={() => setIsOpened(false)}
-          className="bg-[#0a4d3c] text-white text-center text-sm font-semibold py-2 rounded-xl hover:bg-[#D4AF37] hover:text-[#0a4d3c] transition-all"
+          className="bg-[#0a4d3c] text-white text-center text-sm font-semibold py-2 rounded-xl hover:bg-[#D4AF37] hover:text-[#0a4d3c] transition-all pb-15"
         >
           Log In
         </Link>
