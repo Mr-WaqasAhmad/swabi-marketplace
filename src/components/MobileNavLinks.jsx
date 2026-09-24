@@ -57,7 +57,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
           onClick={() => setIsOpened(false)}
           className="flex items-center justify-center gap-3 pt-3 border-t border-gray-200"
         >
-          <div className="w-10 h-10 rounded-full flex justify-center items-center text-xl bg-[#3b053d] font-semibold text-white">
+          <div className="w-15 h-15 rounded-full flex justify-center items-center text-xl bg-[#3b053d] font-semibold text-white">
             {firstNameLetter || 'U'}
           </div>
         </Link>
