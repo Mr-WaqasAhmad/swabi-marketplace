@@ -12,6 +12,7 @@ import { PostAd } from './components/PostAd.jsx'
 import { Privacy } from './components/Privacy.jsx'
 import { Signup } from './components/Signup.jsx'
 import { SingleProductDetails } from './components/SingleProductDetails.jsx'
+import { SellerProfile } from './components/SellerProfile.jsx'
 import { Terms } from './components/Terms.jsx'
 import { UserPost } from './components/UserPost.jsx'
 import { UserProfile } from './components/UserProfile.jsx'
@@ -91,6 +92,10 @@ const router = createBrowserRouter([
           {
             path: "singleproductdetails/:id",
             element: <SingleProductDetails />
+          },
+          {
+            path: "seller/:sellerId",
+            element: <SellerProfile />
           },
         ]
       }
