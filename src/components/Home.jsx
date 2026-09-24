@@ -58,7 +58,7 @@ export const Home = () => {
         url="/"
       />
 
-      <main className='w-full min-h-screen mt-18 select-none bg-[#eee]'>
+      <main className='w-full min-h-screen mt-19 select-none bg-[#eee]'>
         {/* Search Banner */}
         <section
           className='max-w-6xl mx-auto px-3 sm:px-6 mt-2 sm:mt-4'
