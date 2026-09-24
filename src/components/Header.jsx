@@ -51,7 +51,7 @@ export const Header = () => {
       </button>
 
       {/* Smooth Animated Mobile Drawer */}
-      <MobileNavLinks isOpened={isOpened} />
+      <MobileNavLinks isOpened={isOpened} setIsOpened={setIsOpened} />
     </header>
   )
 }
