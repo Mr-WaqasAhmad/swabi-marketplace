@@ -90,6 +90,10 @@ const router = createBrowserRouter([
             element: <PostAd />
           },
           {
+           path: "postad/:id",
+           element: <PostAd />
+           },
+          {
             path: "singleproductdetails/:id",
             element: <SingleProductDetails />
           },
