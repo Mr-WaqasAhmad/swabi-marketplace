@@ -228,12 +228,12 @@ export const SingleProductDetails = () => {
                   </a>
 
                   <Link
-                    to="/userprofile"
-                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
-                  >
-                    <User2 aria-hidden="true" />
-                    <span>View Profile</span>
-                  </Link>
+  to={`/seller/${product?.user_id}`}
+  className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
+>
+  <User2 />
+  <span className='hidden sm:inline'>View Seller Profile</span>
+</Link>
                 </div>
               </div>
             </aside>
