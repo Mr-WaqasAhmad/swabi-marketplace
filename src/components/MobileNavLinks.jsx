@@ -15,7 +15,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         }`}
     >
       {/* ✅ Home (Left) + About Us (Right) */}
-      <div className="flex items-center justify-evenly px-10">
+      <div className="flex items-center justify-evenly px-10 gap-10">
         <NavLink
           to="/"
           onClick={() => setIsOpened(false)}
