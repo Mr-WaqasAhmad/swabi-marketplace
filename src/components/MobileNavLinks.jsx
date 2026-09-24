@@ -1,64 +1,71 @@
-import React from 'react'
-import { Link, NavLink } from 'react-router-dom'
-const profile = false
-export const MobileNavLinks = ({isOpened}) => {
+import React from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { useUser } from '../contexts/UserDetailsContext';
+
+export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
+  const { user } = useUser();
+  const firstNameLetter =
+    user?.full_name?.trim()?.[0] || user?.user_metadata?.full_name?.trim()?.[0];
+
   return (
-   <div
-        className={`absolute top-16 left-0 w-full bg-[#effffb] border-t border-gray-200 p-4 flex flex-col gap-4 shadow-lg md:hidden -z-10 transition-all duration-300 ease-in-out origin-top ${isOpened
-          ? "translate-y-0 opacity-100 pointer-events-auto visible"
-          : "-translate-y-10 opacity-0 pointer-events-none invisible"
-          }`}
+    <div
+      className={`absolute top-16 left-0 w-full bg-[#effffb] border-t border-gray-200 p-4 flex flex-col gap-4 shadow-lg md:hidden transition-all duration-300 ease-in-out origin-top z-50 ${isOpened
+        ? 'translate-y-0 opacity-100 pointer-events-auto visible'
+        : '-translate-y-10 opacity-0 pointer-events-none invisible'
+        }`}
+    >
+      <NavLink
+        to="/"
+        onClick={() => setIsOpened(false)}
+        className={({ isActive }) =>
+          isActive
+            ? 'text-[#0a4d3c] font-bold'
+            : 'text-gray-800 font-medium hover:text-[#0a4d3c]'
+        }
       >
-        <NavLink
-          to="/"
-          onClick={() => setIsOpened(false)}
-          className="text-gray-800 font-medium hover:text-[#0a4d3c]"
-        >
-          Home
-        </NavLink>
+        Home
+      </NavLink>
 
-        <NavLink
-          to="/chat"
-          onClick={() => setIsOpened(false)}
-          className="text-gray-800 font-medium hover:text-[#0a4d3c]"
-        >
-          Chat
-        </NavLink>
+      <NavLink
+        to="/aboutus"
+        onClick={() => setIsOpened(false)}
+        className={({ isActive }) =>
+          isActive
+            ? 'text-[#0a4d3c] font-bold'
+            : 'text-gray-800 font-medium hover:text-[#0a4d3c]'
+        }
+      >
+        About Us
+      </NavLink>
 
-        <NavLink
-          to="/aboutus"
-          onClick={() => setIsOpened(false)}
-          className="text-gray-800 font-medium hover:text-[#0a4d3c]"
-        >
-          About Us
-        </NavLink>
+      <NavLink
+        to="/userpost"
+        onClick={() => setIsOpened(false)}
+        className="bg-[#0a4d3c] text-white text-center text-sm font-semibold py-2 rounded-xl hover:bg-[#D4AF37] hover:text-[#0a4d3c] transition-all"
+      >
+        Post Ad
+      </NavLink>
 
-        <NavLink
-          to="/userpost"
+      {user ? (
+        <Link
+          to="/userprofile"
           onClick={() => setIsOpened(false)}
-          className="bg-[#0a4d3c] text-white text-center text-sm font-semibold py-2 rounded-xl"
+          className="flex items-center gap-3 pt-3 border-t border-gray-200"
         >
-          Post Ad
-        </NavLink>
-
-        {profile ? (
-          <Link
-            to="/userprofile"
-            onClick={() => setIsOpened(false)}
-            className="flex items-center gap-3 pt-2 border-t border-gray-200"
-          >
-            <img src={profile} alt="Profile" className="w-9 h-9 rounded-full object-cover border border-[#0a4d3c]" />
-            <span className="text-gray-800 font-semibold text-sm">My Profile</span>
-          </Link>
-        ) : (
-          <Link
-            to="/login"
-            onClick={() => setIsOpened(false)}
-            className="bg-[#0a4d3c] text-white text-center text-sm font-semibold py-2 rounded-xl"
-          >
-            Log In
-          </Link>
-        )}
-      </div>
-  )
-}
+          <div className="w-10 h-10 rounded-full flex justify-center items-center text-xl bg-[#3b053d] font-semibold text-white">
+            {firstNameLetter || 'U'}
+          </div>
+          <span className="text-gray-800 font-semibold text-sm">My Profile</span>
+        </Link>
+      ) : (
+        <Link
+          to="/login"
+          onClick={() => setIsOpened(false)}
+          className="bg-[#0a4d3c] text-white text-center text-sm font-semibold py-2 rounded-xl hover:bg-[#D4AF37] hover:text-[#0a4d3c] transition-all"
+        >
+          Log In
+        </Link>
+      )}
+    </div>
+  );
+};
