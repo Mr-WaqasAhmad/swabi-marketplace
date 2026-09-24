@@ -198,7 +198,6 @@ export const UserPost = () => {
               <div className="p-3 pt-0 flex flex-col gap-2 mt-2">
                 <div className="grid grid-cols-2 gap-2">
                   <Link
-                    <Link
                   to={`/postad/${ad.id}`}
                     className="bg-gray-100 text-gray-700 hover:bg-[#0a4d3c] hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-semibold transition-colors"
                   >
