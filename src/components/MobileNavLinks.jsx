@@ -14,8 +14,8 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         : '-translate-y-10 opacity-0 pointer-events-none invisible'
         }`}
     >
-      {/* ✅ Home + About Us — Ek Line Mein */}
-      <div className="flex items-center gap-6">
+      {/* ✅ Home (Left) + About Us (Right) */}
+      <div className="flex items-center justify-evenly px-10">
         <NavLink
           to="/"
           onClick={() => setIsOpened(false)}
