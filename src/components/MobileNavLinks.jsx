@@ -14,30 +14,34 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         : '-translate-y-10 opacity-0 pointer-events-none invisible'
         }`}
     >
-      <NavLink
-        to="/"
-        onClick={() => setIsOpened(false)}
-        className={({ isActive }) =>
-          isActive
-            ? 'text-[#0a4d3c] font-bold'
-            : 'text-gray-800 font-medium hover:text-[#0a4d3c]'
-        }
-      >
-        Home
-      </NavLink>
+      {/* ✅ Home + About Us — Ek Line Mein */}
+      <div className="flex items-center gap-6">
+        <NavLink
+          to="/"
+          onClick={() => setIsOpened(false)}
+          className={({ isActive }) =>
+            isActive
+              ? 'text-[#0a4d3c] font-bold'
+              : 'text-gray-800 font-medium hover:text-[#0a4d3c]'
+          }
+        >
+          Home
+        </NavLink>
 
-      <NavLink
-        to="/aboutus"
-        onClick={() => setIsOpened(false)}
-        className={({ isActive }) =>
-          isActive
-            ? 'text-[#0a4d3c] font-bold'
-            : 'text-gray-800 font-medium hover:text-[#0a4d3c]'
-        }
-      >
-        About Us
-      </NavLink>
+        <NavLink
+          to="/aboutus"
+          onClick={() => setIsOpened(false)}
+          className={({ isActive }) =>
+            isActive
+              ? 'text-[#0a4d3c] font-bold'
+              : 'text-gray-800 font-medium hover:text-[#0a4d3c]'
+          }
+        >
+          About Us
+        </NavLink>
+      </div>
 
+      {/* Post Ad Button */}
       <NavLink
         to="/userpost"
         onClick={() => setIsOpened(false)}
@@ -46,6 +50,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         Post Ad
       </NavLink>
 
+      {/* Profile ya Login */}
       {user ? (
         <Link
           to="/userprofile"
