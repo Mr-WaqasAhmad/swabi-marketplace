@@ -98,21 +98,13 @@ export const SingleProductDetails = () => {
             </ol>
           </nav>
 
-          <div className='flex items-center justify-between mb-4'>
+          <div className='flex items-center justify-center mb-4'>
             <Link
               to="/"
               className='flex items-center gap-2 text-[#0a4d3c] font-semibold text-sm hover:underline'
             >
               <ArrowLeft className='w-4 h-4' aria-hidden="true" /> Back to Listings
             </Link>
-            <div className='flex items-center gap-2 text-gray-600'>
-              <button
-                aria-label="Share this product"
-                className='p-2 bg-white border border-gray-200 rounded-xl hover:text-[#0a4d3c] transition-colors cursor-pointer shadow-sm'
-              >
-                <Share2 className='w-4 h-4' aria-hidden="true" />
-              </button>
-            </div>
           </div>
 
           <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
