@@ -43,8 +43,9 @@ export const CategorySelector = ({ value, onChange }) => {
         onChange={onChange}
         className='w-full appearance-none bg-white text-gray-800 text-xs sm:text-base pl-10 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all cursor-pointer font-medium'
       >
-        <option value="" hidden>
-          Select Category
+        {/* ✅ "All Categories" option */}
+        <option value="">
+          All Categories
         </option>
 
         {categories.map((cat, index) => (
