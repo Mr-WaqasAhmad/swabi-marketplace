@@ -1,7 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { MapPin, Heart, MessageCircle, Code2, Globe } from "lucide-react";
+import { MapPin, Heart } from "lucide-react";
+
+const github = new URL('../assets/images/github.png', import.meta.url).href;
+const facebook = new URL('../assets/images/facebook.png', import.meta.url).href;
+const whatsapp = new URL('../assets/images/whatsapp.png', import.meta.url).href;
 
 export const Footer = () => {
   const location = useLocation();
@@ -56,30 +60,10 @@ export const Footer = () => {
           <div className="flex flex-col gap-3 sm:items-end">
             <h4 className="text-sm font-bold text-white">Quick Links</h4>
             <div className="flex flex-wrap gap-x-4 gap-y-2 sm:justify-end">
-              <Link
-                to="/home"
-                className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                to="/aboutus"
-                className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors"
-              >
-                About Us
-              </Link>
-              <Link
-                to="/privacy"
-                className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors"
-              >
-                Privacy
-              </Link>
-              <Link
-                to="/terms"
-                className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors"
-              >
-                Terms
-              </Link>
+              <Link to="/home" className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors">Home</Link>
+              <Link to="/aboutus" className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors">About Us</Link>
+              <Link to="/privacy" className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors">Privacy</Link>
+              <Link to="/terms" className="text-xs text-gray-400 hover:text-[#D4AF37] transition-colors">Terms</Link>
             </div>
           </div>
 
@@ -107,34 +91,46 @@ export const Footer = () => {
               Waqas Ahmad
             </a>
 
-            {/* ✅ Lucide SVG Icons — Perfectly Circular */}
+            {/* ✅ Social Icons — Original PNGs, Perfectly Circular */}
             <div className="flex items-center gap-2 ml-1 sm:ml-2 pl-2 sm:pl-3 border-l border-gray-700">
               <a
                 href="https://wa.me/923100094241"
                 target="_blank"
                 rel="noreferrer"
                 title="WhatsApp"
-                className="w-8 h-8 bg-[#25D366] hover:bg-[#1FA855] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
+                className="w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-all shadow-sm"
               >
-                <MessageCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <img
+                  src={whatsapp}
+                  alt="WhatsApp"
+                  className="w-full h-full object-cover rounded-full"
+                />
               </a>
               <a
                 href="https://github.com/Mr-WaqasAhmad"
                 target="_blank"
                 rel="noreferrer"
                 title="GitHub"
-                className="w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
+                className="w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-all shadow-sm"
               >
-                <Code2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <img
+                  src={github}
+                  alt="GitHub"
+                  className="w-full h-full object-cover rounded-full"
+                />
               </a>
               <a
                 href="https://www.facebook.com/profile.php?id=100081875383531"
                 target="_blank"
                 rel="noreferrer"
                 title="Facebook"
-                className="w-8 h-8 bg-[#1877F2] hover:bg-[#0a5dc2] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
+                className="w-8 h-8 rounded-full overflow-hidden hover:scale-110 transition-all shadow-sm"
               >
-                <Globe className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <img
+                  src={facebook}
+                  alt="Facebook"
+                  className="w-full h-full object-cover rounded-full"
+                />
               </a>
             </div>
           </div>
