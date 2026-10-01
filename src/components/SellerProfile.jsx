@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, ShieldCheck, User, Loader2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, ShieldCheck, User, Loader2, MessageCircle, Share2, Check } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const getSellerData = async (sellerId) => {
@@ -28,6 +28,7 @@ const getSellerData = async (sellerId) => {
 
 export const SellerProfile = () => {
   const { sellerId } = useParams();
+  const [copied, setCopied] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['seller', sellerId],
@@ -63,11 +64,10 @@ export const SellerProfile = () => {
   const sellerLocation = profile.location || 'Swabi, KP';
   const firstLetter = sellerName.trim()?.[0]?.toUpperCase();
 
-  // ✅ WhatsApp Link with general message
+  // ✅ WhatsApp Link
   const getWhatsappLink = (whatsapp) => {
     if (!whatsapp) return null;
 
-    // Number clean karein
     let cleaned = whatsapp.replace(/[^0-9]/g, '');
     if (cleaned.startsWith('0')) {
       cleaned = '92' + cleaned.slice(1);
@@ -76,7 +76,6 @@ export const SellerProfile = () => {
       cleaned = '92' + cleaned;
     }
 
-    // ✅ General message
     const message = `Assalam o Alaikum ${sellerName}!
 
 Main ne aap ki profile *Swabi Market* par dekhi hai.
@@ -94,16 +93,79 @@ Shukriya! 🙏`;
 
   const whatsappLink = getWhatsappLink(sellerWhatsapp);
 
+  // ✅ Share Handler — Native share + Clipboard
+  const handleShare = async () => {
+    const shareUrl = `https://skpk.vercel.app/seller/${sellerId}`;
+    const shareData = {
+      title: `${sellerName} - Swabi Market`,
+      text: `${sellerName} ki profile Swabi Market par dekhein. ${posts.length} ads available.`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('Share error:', err);
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        } catch (clipErr) {
+          console.error('Clipboard error:', clipErr);
+          alert('Share nahi ho saka. Link: ' + shareUrl);
+        }
+      }
+    }
+  };
+
   return (
     <main className="w-full min-h-screen bg-gray-50 pt-20 pb-12 select-none">
       <div className="max-w-5xl mx-auto px-3 sm:px-6">
 
-        <Link
-          to="/home"
-          className="inline-flex items-center gap-2 text-[#0a4d3c] font-semibold text-sm hover:underline mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Listings
-        </Link>
+        {/* ✅ Back + Share Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <Link
+            to="/home"
+            className="inline-flex items-center gap-2 text-[#0a4d3c] font-semibold text-sm hover:underline"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Listings
+          </Link>
+
+          <div className="flex items-center gap-2">
+            {/* ✅ Share Button */}
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Share this seller profile"
+              className={`relative p-2 border rounded-xl transition-all cursor-pointer shadow-sm ${
+                copied
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                  : 'bg-white border-gray-200 hover:text-[#0a4d3c] hover:border-[#0a4d3c]'
+              }`}
+            >
+              {copied ? (
+                <Check className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Share2 className="w-4 h-4" aria-hidden="true" />
+              )}
+            </button>
+
+            {/* ✅ Copied Toast */}
+            {copied && (
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 animate-pulse">
+                ✓ Link copied!
+              </span>
+            )}
+          </div>
+        </div>
 
         {/* Seller Card */}
         <div className="bg-white border border-gray-200 rounded-3xl p-6 sm:p-8 shadow-sm mb-8">
@@ -131,7 +193,7 @@ Shukriya! 🙏`;
                 </div>
               </div>
 
-              {/* ✅ Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 max-w-md mx-auto sm:mx-0">
                 {sellerPhone && sellerPhone !== 'Not provided' && (
                   <a
