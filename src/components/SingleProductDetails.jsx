@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, MessageSquare, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageSquare, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
@@ -9,7 +9,6 @@ import { SEO } from './SEO';
 const getData = async (id) => {
   if (!id) return null;
 
-  // 1. Post fetch karein
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select('*')
@@ -19,7 +18,6 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
-  // 2. Seller ki details fetch karein
   let sellerDetails = null;
   if (post.user_id) {
     const { data: userData, error: profileError } = await supabase
@@ -46,6 +44,7 @@ export const SingleProductDetails = () => {
   const param = useParams();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', param.id],
@@ -76,7 +75,6 @@ export const SingleProductDetails = () => {
   const getWhatsappLink = (whatsapp) => {
     if (!whatsapp) return null;
 
-    // Number clean karein
     let cleaned = whatsapp.replace(/[^0-9]/g, '');
     if (cleaned.startsWith('0')) {
       cleaned = '92' + cleaned.slice(1);
@@ -85,7 +83,6 @@ export const SingleProductDetails = () => {
       cleaned = '92' + cleaned;
     }
 
-    // ✅ Poora message with product details
     const message = `Assalam o Alaikum ${sellerName}!
 
 Main ne aapki yeh product *Swabi Market* par dekhi hai:
@@ -115,6 +112,44 @@ Shukriya! 🙏`;
   };
 
   const whatsappLink = getWhatsappLink(sellerWhatsapp);
+
+  // ✅ Share Handler — Native share + Clipboard
+  const handleShare = async () => {
+    // Link banayein
+    const shareUrl = `https://skpk.vercel.app/singleproductdetails/${param.id}`;
+    const shareData = {
+      title: product?.title || 'Swabi Market',
+      text: `${product?.title} - PKR ${Number(product?.price)?.toLocaleString()}\n\nDekhein Swabi Market par:`,
+      url: shareUrl,
+    };
+
+    try {
+      // 1. Native share (mobile)
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return; // Native share successful
+      }
+
+      // 2. Fallback: Clipboard copy
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      // Agar user cancel kare ya error aaye
+      if (err.name !== 'AbortError') {
+        console.error('Share error:', err);
+        // Fallback: Clipboard copy
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2500);
+        } catch (clipErr) {
+          console.error('Clipboard error:', clipErr);
+          alert('Share nahi ho saka. Link manually copy karein: ' + shareUrl);
+        }
+      }
+    }
+  };
 
   return (
     <>
@@ -149,13 +184,32 @@ Shukriya! 🙏`;
             >
               <ArrowLeft className='w-4 h-4' aria-hidden="true" /> Back to Listings
             </Link>
+
             <div className='flex items-center gap-2 text-gray-600'>
+              {/* ✅ Share Button — Functional */}
               <button
+                type="button"
+                onClick={handleShare}
                 aria-label="Share this product"
-                className='p-2 bg-white border border-gray-200 rounded-xl hover:text-[#0a4d3c] transition-colors cursor-pointer shadow-sm'
+                className={`relative p-2 border rounded-xl transition-all cursor-pointer shadow-sm ${
+                  copied
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                    : 'bg-white border-gray-200 hover:text-[#0a4d3c] hover:border-[#0a4d3c]'
+                }`}
               >
-                <Share2 className='w-4 h-4' aria-hidden="true" />
+                {copied ? (
+                  <Check className='w-4 h-4' aria-hidden="true" />
+                ) : (
+                  <Share2 className='w-4 h-4' aria-hidden="true" />
+                )}
               </button>
+
+              {/* ✅ Copied Toast */}
+              {copied && (
+                <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 animate-pulse'>
+                  ✓ Link copied!
+                </span>
+              )}
             </div>
           </div>
 
@@ -262,7 +316,7 @@ Shukriya! 🙏`;
                 </div>
 
                 <div className='flex flex-col gap-2.5 pt-2'>
-                  {/* ✅ Call Seller */}
+                  {/* Call Seller */}
                   <a
                     href={`tel:${sellerPhone}`}
                     aria-label={`Call seller ${sellerName}`}
@@ -272,7 +326,7 @@ Shukriya! 🙏`;
                     <span>Call Seller</span>
                   </a>
 
-                  {/* ✅ WhatsApp Seller with Product Details */}
+                  {/* WhatsApp Seller */}
                   {whatsappLink && (
                     <a
                       href={whatsappLink}
@@ -286,7 +340,7 @@ Shukriya! 🙏`;
                     </a>
                   )}
 
-                  {/* ✅ View Seller Profile */}
+                  {/* View Seller Profile */}
                   <Link
                     to={`/seller/${product?.user_id}`}
                     className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
