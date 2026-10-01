@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { LoginTop } from './LoginTop'
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Globe, PhoneCall, Home, User2, UserCheck2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Mail, Lock, Globe, PhoneCall, Home, User2, UserCheck2, Eye, EyeOff, Loader2, MessageCircle } from 'lucide-react'
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ const userValidations = z.object({
     lastName: z.string().min(2, "Last name must be at least 2 characters").max(20, "Last name cannot exceed 20 characters"),
     email: z.string().email("Invalid email address"),
     userPhoneNumber: z.string().min(11, "Phone number must be at least 11 digits").max(11, "Phone number cannot exceed 11 digits"),
+    userWhatsappNumber: z.string().min(11, "WhatsApp number must be at least 11 digits").max(11, "WhatsApp number cannot exceed 11 digits"),
     password: z.string().min(8, "Password must be at least 8 characters").max(15, "Password cannot exceed 15 characters"),
     confirmPassword: z.string().min(8, "Password must be at least 8 characters").max(15, "Password cannot exceed 15 characters"),
     userAddress: z.string().min(4, "Address must be at least 4 characters").max(80, "Address cannot exceed 80 characters"),
@@ -44,14 +45,21 @@ export const Signup = () => {
     const passwordValue = watch("password");
     const confirmPasswordValue = watch("confirmPassword");
 
+    // Helper: Phone number normalize karein
+    const normalizePhone = (phone) => {
+        const trimmed = phone.trim();
+        if (trimmed.startsWith("+92")) return "0" + trimmed.slice(3);
+        return trimmed;
+    };
+
     const onSubmit = async (data) => {
         setAuthError("");
         setAuthSuccess("");
 
         try {
-            const trimmedPhone = data.userPhoneNumber.trim();
-            let rawPhone = trimmedPhone.startsWith("+92") ? "0" + trimmedPhone.slice(3) : trimmedPhone;
-            let formattedPhone = trimmedPhone.startsWith("0") ? "+92" + trimmedPhone.slice(1) : trimmedPhone;
+            const rawPhone = normalizePhone(data.userPhoneNumber);
+            const rawWhatsapp = normalizePhone(data.userWhatsappNumber);
+            const formattedPhone = data.userPhoneNumber.startsWith("0") ? "+92" + data.userPhoneNumber.slice(1) : data.userPhoneNumber;
 
             // 1. Duplicate phone check
             const { data: existingPhone, error: phoneCheckError } = await supabase
@@ -79,6 +87,7 @@ export const Signup = () => {
                     data: {
                         full_name: fullName,
                         phone: rawPhone,
+                        whatsapp: rawWhatsapp,
                         location: data.userAddress,
                     },
                 },
@@ -94,6 +103,7 @@ export const Signup = () => {
                         email: data.email.trim(),
                         full_name: fullName,
                         phone: rawPhone,
+                        whatsapp: rawWhatsapp,
                         location: data.userAddress,
                     },
                 ]);
@@ -101,7 +111,7 @@ export const Signup = () => {
                 if (profileError) throw profileError;
             }
 
-            // 4. Clear active session so app won't think user is logged in automatically
+            // 4. Clear active session
             await supabase.auth.signOut();
 
             setAuthSuccess(
@@ -234,8 +244,8 @@ export const Signup = () => {
                         </div>
                     </div>
 
-                    {/* User Email & Phone */}
-                    <div className='flex flex-col gap-3 w-full sm:flex-row'>
+                    {/* User Email */}
+                    <div className='w-full'>
                         <div className="relative w-full">
                             <Mail className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
                             <input
@@ -251,12 +261,15 @@ export const Signup = () => {
                                 </p>
                             )}
                         </div>
+                    </div>
 
+                    {/* User Phone + WhatsApp */}
+                    <div className='flex flex-col gap-3 w-full sm:flex-row'>
                         <div className="relative w-full">
                             <PhoneCall className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
                             <input
                                 type="tel"
-                                placeholder="e.g. 03100094241"
+                                placeholder="Phone: 03100094241"
                                 autoComplete='off'
                                 {...register("userPhoneNumber")}
                                 className="border border-gray-300 rounded-xl py-3 pl-11 pr-3 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
@@ -264,6 +277,22 @@ export const Signup = () => {
                             {errors.userPhoneNumber && (
                                 <p className="text-red-600 text-xs mt-1 font-medium px-1">
                                     {errors.userPhoneNumber.message}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="relative w-full">
+                            <MessageCircle className="absolute left-3.5 top-3.5 w-5 h-5 text-[#25D366]" />
+                            <input
+                                type="tel"
+                                placeholder="WhatsApp: 03100094241"
+                                autoComplete='off'
+                                {...register("userWhatsappNumber")}
+                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-3 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#25D366] bg-white text-sm transition-all shadow-sm"
+                            />
+                            {errors.userWhatsappNumber && (
+                                <p className="text-red-600 text-xs mt-1 font-medium px-1">
+                                    {errors.userWhatsappNumber.message}
                                 </p>
                             )}
                         </div>
