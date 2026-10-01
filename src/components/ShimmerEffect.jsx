@@ -5,7 +5,7 @@ export const ShimmerEffect = () => {
   const cards = [1, 2, 3, 4, 5, 6, 7, 8];
 
   return (
-    <div className='w-full min-h-screen pt-16 pb-12 select-none bg-gray-50'>
+    <div className='w-full min-h-screen pt-21 pb-12 select-none bg-gray-50'>
       
       {/* Top Banner & Search Bar Area */}
       <div className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
