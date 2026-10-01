@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Edit2, Mail, MapPin, Save, User, Trash2, Loader2, Phone, LogOut, AlertTriangle } from "lucide-react";
+import { Mail, MapPin, Save, User, Trash2, Loader2, Phone, LogOut, AlertTriangle, MessageCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUser } from "../contexts/UserDetailsContext";
 import { supabase } from "./supabaseClient";
 
-const userImg = new URL("../assets/images/profile.jpg", import.meta.url).href;
-
+// Zod Schema
 const profileSchema = z.object({
   fullName: z
     .string()
@@ -18,6 +17,11 @@ const profileSchema = z.object({
     .min(10, "Phone number kam se kam 10 digits ka hona chahiye")
     .max(15, "Phone number ziada se ziada 15 digits ka ho sakta hai")
     .regex(/^[0-9+\s-]+$/, "Sahi phone number darj karein"),
+  whatsapp: z
+    .string()
+    .min(10, "WhatsApp number kam se kam 10 digits ka hona chahiye")
+    .max(15, "WhatsApp number ziada se ziada 15 digits ka ho sakta hai")
+    .regex(/^[0-9+\s-]+$/, "Sahi WhatsApp number darj karein"),
   address: z
     .string()
     .min(5, "Address kam se kam 5 characters ka hona chahiye"),
@@ -30,7 +34,8 @@ export const UserProfile = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", message: "" });
 
-  const firstNameLetter = user?.full_name?.trim()?.[0] || user?.user_metadata?.full_name?.trim()?.[0];
+  const firstNameLetter =
+    user?.full_name?.trim()?.[0] || user?.user_metadata?.full_name?.trim()?.[0];
 
   const {
     register,
@@ -42,22 +47,24 @@ export const UserProfile = () => {
     defaultValues: {
       fullName: "",
       phone: "",
+      whatsapp: "",
       address: "",
     },
   });
 
-  // ✅ Sync form with latest user data (user object change hone par bhi)
+  // Sync form with latest user data
   useEffect(() => {
     if (user) {
       reset({
         fullName: user.full_name || user.user_metadata?.full_name || "",
         phone: user.phone || user.user_metadata?.phone || "",
+        whatsapp: user.whatsapp || user.user_metadata?.whatsapp || "",
         address: user.location || user.address || user.user_metadata?.location || "",
       });
     }
   }, [user, reset]);
 
-  // ✅ UPDATED: Profile update with .select() confirmation
+  // Update Profile
   const onUpdateProfile = async (formData) => {
     if (!user?.id) {
       setFeedback({ type: "error", message: "User session nahi mila." });
@@ -68,23 +75,25 @@ export const UserProfile = () => {
     setFeedback({ type: "", message: "" });
 
     try {
-      // 1. Auth metadata update (login/session ke liye)
+      // 1. Auth metadata update
       const { data: authData, error: authErr } = await supabase.auth.updateUser({
         data: {
           full_name: formData.fullName,
           phone: formData.phone,
+          whatsapp: formData.whatsapp,
           location: formData.address,
         },
       });
 
       if (authErr) throw authErr;
 
-      // 2. ✅ Profiles table update WITH .select() — confirm karne ke liye
+      // 2. Profiles table update
       const { data: updatedRows, error: dbErr } = await supabase
         .from("profiles")
         .update({
           full_name: formData.fullName,
           phone: formData.phone,
+          whatsapp: formData.whatsapp,
           location: formData.address,
         })
         .eq("id", user.id)
@@ -92,36 +101,32 @@ export const UserProfile = () => {
 
       if (dbErr) throw dbErr;
 
-      // 3. ✅ Confirm karein ke actually row update hui
       if (!updatedRows || updatedRows.length === 0) {
-        throw new Error(
-          "Profile update DB mein save nahi hua! Supabase RLS UPDATE policy check karein."
-        );
+        throw new Error("Profile update DB mein save nahi hua!");
       }
 
-      console.log("✅ DB Update Confirmed:", updatedRows[0]);
-
-      // 4. ✅ Local state update — taake UI turant refresh ho
+      // 3. Local state update
       setUserData((prev) => ({
         ...prev,
         ...authData.user,
         full_name: formData.fullName,
         phone: formData.phone,
+        whatsapp: formData.whatsapp,
         location: formData.address,
         user_metadata: {
           ...prev?.user_metadata,
           full_name: formData.fullName,
           phone: formData.phone,
+          whatsapp: formData.whatsapp,
           location: formData.address,
         },
       }));
 
       setFeedback({
         type: "success",
-        message: "Profile successfully update ho gayi! Ab har jagah naya data show hoga.",
+        message: "Profile successfully update ho gayi!",
       });
     } catch (err) {
-      console.error("Update error:", err);
       setFeedback({
         type: "error",
         message: err.message || "Update karne me masla aaya.",
@@ -131,7 +136,7 @@ export const UserProfile = () => {
     }
   };
 
-  // Logout Handler
+  // Logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
@@ -148,7 +153,7 @@ export const UserProfile = () => {
     }
   };
 
-  // Delete Account Handler
+  // Delete Account
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm(
       "Kya aap apna account aur tamam details hamesha ke liye delete karna chahte hain?"
@@ -182,9 +187,9 @@ export const UserProfile = () => {
 
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("en-US", {
-      month: "short",
-      year: "numeric",
-    })
+        month: "short",
+        year: "numeric",
+      })
     : "Swabi Market";
 
   return (
@@ -213,10 +218,11 @@ export const UserProfile = () => {
         {/* Feedback Alert */}
         {feedback.message && (
           <div
-            className={`mb-5 p-3 rounded-xl text-xs sm:text-sm text-center font-medium ${feedback.type === "success"
-              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-              : "bg-red-100 text-red-800 border border-red-300"
-              }`}
+            className={`mb-5 p-3 rounded-xl text-xs sm:text-sm text-center font-medium ${
+              feedback.type === "success"
+                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                : "bg-red-100 text-red-800 border border-red-300"
+            }`}
           >
             {feedback.message}
           </div>
@@ -227,8 +233,8 @@ export const UserProfile = () => {
           onSubmit={handleSubmit(onUpdateProfile)}
           className="flex flex-col gap-5"
         >
+          {/* Full Name + Phone */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Full Name */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-600 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
@@ -239,8 +245,9 @@ export const UserProfile = () => {
                 type="text"
                 {...register("fullName")}
                 placeholder="Enter full name"
-                className={`w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:border-[#0a4d3c] focus:bg-white text-gray-700 ${errors.fullName ? "border-red-500 bg-red-50" : "border-gray-200"
-                  }`}
+                className={`w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:border-[#0a4d3c] focus:bg-white text-gray-700 ${
+                  errors.fullName ? "border-red-500 bg-red-50" : "border-gray-200"
+                }`}
               />
               {errors.fullName && (
                 <span className="text-xs text-red-500 font-medium">
@@ -249,7 +256,6 @@ export const UserProfile = () => {
               )}
             </div>
 
-            {/* Phone Number */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-600 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
@@ -260,8 +266,9 @@ export const UserProfile = () => {
                 type="text"
                 {...register("phone")}
                 placeholder="e.g. 03001234567"
-                className={`w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:border-[#0a4d3c] focus:bg-white text-gray-700 ${errors.phone ? "border-red-500 bg-red-50" : "border-gray-200"
-                  }`}
+                className={`w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:border-[#0a4d3c] focus:bg-white text-gray-700 ${
+                  errors.phone ? "border-red-500 bg-red-50" : "border-gray-200"
+                }`}
               />
               {errors.phone && (
                 <span className="text-xs text-red-500 font-medium">
@@ -271,7 +278,29 @@ export const UserProfile = () => {
             </div>
           </div>
 
-          {/* Email (read-only) */}
+          {/* WhatsApp */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-gray-600 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <MessageCircle className="w-4 h-4 text-[#25D366]" /> WhatsApp Number
+              </span>
+            </label>
+            <input
+              type="text"
+              {...register("whatsapp")}
+              placeholder="e.g. 03001234567"
+              className={`w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:border-[#25D366] focus:bg-white text-gray-700 ${
+                errors.whatsapp ? "border-red-500 bg-red-50" : "border-gray-200"
+              }`}
+            />
+            {errors.whatsapp && (
+              <span className="text-xs text-red-500 font-medium">
+                {errors.whatsapp.message}
+              </span>
+            )}
+          </div>
+
+          {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-600 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -297,8 +326,9 @@ export const UserProfile = () => {
               rows="3"
               {...register("address")}
               placeholder="Enter your address"
-              className={`w-full border rounded-xl p-2.5 text-sm resize-none focus:outline-none focus:border-[#0a4d3c] focus:bg-white text-gray-700 ${errors.address ? "border-red-500 bg-red-50" : "border-gray-200"
-                }`}
+              className={`w-full border rounded-xl p-2.5 text-sm resize-none focus:outline-none focus:border-[#0a4d3c] focus:bg-white text-gray-700 ${
+                errors.address ? "border-red-500 bg-red-50" : "border-gray-200"
+              }`}
             ></textarea>
             {errors.address && (
               <span className="text-xs text-red-500 font-medium">
