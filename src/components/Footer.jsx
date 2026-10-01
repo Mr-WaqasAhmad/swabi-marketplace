@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { MapPin, Heart, MessageCircle, Github, Facebook } from "lucide-react";
+import { MapPin, Heart, MessageCircle, Code2, Globe } from "lucide-react";
 
 export const Footer = () => {
   const location = useLocation();
@@ -125,7 +125,7 @@ export const Footer = () => {
                 title="GitHub"
                 className="w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
               >
-                <Github className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <Code2 className="w-4 h-4 text-white" strokeWidth={2.5} />
               </a>
               <a
                 href="https://www.facebook.com/profile.php?id=100081875383531"
@@ -134,7 +134,7 @@ export const Footer = () => {
                 title="Facebook"
                 className="w-8 h-8 bg-[#1877F2] hover:bg-[#0a5dc2] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
               >
-                <Facebook className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <Globe className="w-4 h-4 text-white" strokeWidth={2.5} />
               </a>
             </div>
           </div>
