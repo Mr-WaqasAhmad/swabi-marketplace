@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, ShieldCheck, User, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, ShieldCheck, User, Loader2, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const getSellerData = async (sellerId) => {
@@ -59,8 +59,40 @@ export const SellerProfile = () => {
   const { profile, posts } = data;
   const sellerName = profile.full_name || 'User';
   const sellerPhone = profile.phone || 'Not provided';
+  const sellerWhatsapp = profile.whatsapp || null;
   const sellerLocation = profile.location || 'Swabi, KP';
   const firstLetter = sellerName.trim()?.[0]?.toUpperCase();
+
+  // ✅ WhatsApp Link with general message
+  const getWhatsappLink = (whatsapp) => {
+    if (!whatsapp) return null;
+
+    // Number clean karein
+    let cleaned = whatsapp.replace(/[^0-9]/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '92' + cleaned.slice(1);
+    }
+    if (!cleaned.startsWith('92')) {
+      cleaned = '92' + cleaned;
+    }
+
+    // ✅ General message
+    const message = `Assalam o Alaikum ${sellerName}!
+
+Main ne aap ki profile *Swabi Market* par dekhi hai.
+
+Aap ki products dekh kar mujhe interest hua. 
+Kya aap se koi deal ho sakti hai?
+
+Mujhe aap ki products ke baare mein maloomat chahiye.
+
+Shukriya! 🙏`;
+
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${cleaned}?text=${encodedMessage}`;
+  };
+
+  const whatsappLink = getWhatsappLink(sellerWhatsapp);
 
   return (
     <main className="w-full min-h-screen bg-gray-50 pt-20 pb-12 select-none">
@@ -99,15 +131,30 @@ export const SellerProfile = () => {
                 </div>
               </div>
 
-              {sellerPhone && sellerPhone !== 'Not provided' && (
-                <a
-                  href={`tel:${sellerPhone}`}
-                  className="inline-flex items-center gap-2 mt-4 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow transition-all"
-                >
-                  <Phone className="w-4 h-4" />
-                  Call Seller
-                </a>
-              )}
+              {/* ✅ Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 max-w-md mx-auto sm:mx-0">
+                {sellerPhone && sellerPhone !== 'Not provided' && (
+                  <a
+                    href={`tel:${sellerPhone}`}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow transition-all"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call Seller
+                  </a>
+                )}
+
+                {whatsappLink && (
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp Seller
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
