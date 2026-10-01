@@ -1,11 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { MapPin, Heart } from "lucide-react";
-
-const github = new URL('../assets/images/github.png', import.meta.url).href;
-const facebook = new URL('../assets/images/facebook.png', import.meta.url).href;
-const whatsapp = new URL('../assets/images/whatsapp.png', import.meta.url).href;
+import { MapPin, Heart, MessageCircle, Github, Facebook } from "lucide-react";
 
 export const Footer = () => {
   const location = useLocation();
@@ -111,34 +107,34 @@ export const Footer = () => {
               Waqas Ahmad
             </a>
 
-            {/* ✅ Circular Social Icons */}
+            {/* ✅ Lucide SVG Icons — Perfectly Circular */}
             <div className="flex items-center gap-2 ml-1 sm:ml-2 pl-2 sm:pl-3 border-l border-gray-700">
               <a
                 href="https://wa.me/923100094241"
                 target="_blank"
                 rel="noreferrer"
                 title="WhatsApp"
-                className="w-7 h-7 bg-gray-800 hover:bg-[#25D366] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm overflow-hidden"
+                className="w-8 h-8 bg-[#25D366] hover:bg-[#1FA855] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
               >
-                <img src={whatsapp} alt="WhatsApp" className="w-3.5 h-3.5 scale-150" />
+                <MessageCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
               </a>
               <a
                 href="https://github.com/Mr-WaqasAhmad"
                 target="_blank"
                 rel="noreferrer"
                 title="GitHub"
-                className="w-7 h-7 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm overflow-hidden"
+                className="w-8 h-8 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
               >
-                <img src={github} alt="GitHub" className="w-3.5 h-3.5 scale-150" />
+                <Github className="w-4 h-4 text-white" strokeWidth={2.5} />
               </a>
               <a
                 href="https://www.facebook.com/profile.php?id=100081875383531"
                 target="_blank"
                 rel="noreferrer"
                 title="Facebook"
-                className="w-7 h-7 bg-gray-800 hover:bg-[#1877F2] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm overflow-hidden"
+                className="w-8 h-8 bg-[#1877F2] hover:bg-[#0a5dc2] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm"
               >
-                <img src={facebook} alt="Facebook" className="w-3.5 h-3.5 scale-150" />
+                <Facebook className="w-4 h-4 text-white" strokeWidth={2.5} />
               </a>
             </div>
           </div>
