@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Header } from './components/Header'
 import { Footer } from './components/Footer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ScrollToTop } from './components/ScrollToTop';
 
 export const App = () => {
 
@@ -19,6 +20,7 @@ export const App = () => {
   });
   return (
     <>
+      <ScrollToTop />
       <Header />
       <Outlet />
       <Footer />
