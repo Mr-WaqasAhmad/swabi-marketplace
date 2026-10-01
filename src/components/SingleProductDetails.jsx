@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, MessageSquare, Phone, Share2, ShieldCheck, User, User2, Wrench } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageSquare, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
-import { useUser } from '../contexts/UserDetailsContext';
-import { SEO } from './SEO'; // ✅ ADD
+import { SEO } from './SEO';
 
 const getData = async (id) => {
   if (!id) return null;
 
+  // 1. Post fetch karein
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select('*')
@@ -19,6 +19,7 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
+  // 2. Seller ki details fetch karein
   let sellerDetails = null;
   if (post.user_id) {
     const { data: userData, error: profileError } = await supabase
@@ -35,14 +36,13 @@ const getData = async (id) => {
     ...post,
     full_name: sellerDetails?.full_name || post.full_name,
     phone: sellerDetails?.phone || post.phone,
+    whatsapp: sellerDetails?.whatsapp || null,
     location: sellerDetails?.location || sellerDetails?.address || post.location,
-    user_details: sellerDetails
+    user_details: sellerDetails,
   };
 };
 
 export const SingleProductDetails = () => {
-  const { user } = useUser();
-  const firstNameLetter = user?.user_metadata?.full_name?.trim()?.[0];
   const param = useParams();
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -69,11 +69,55 @@ export const SingleProductDetails = () => {
   const seller = product?.user_details || {};
   const sellerName = seller.full_name || product?.full_name || "User";
   const sellerPhone = seller.phone || product?.phone || "+92 3XX XXXXXXX";
+  const sellerWhatsapp = seller.whatsapp || product?.whatsapp || null;
   const sellerLocation = seller.location || seller.address || product?.location || "Swabi, KP";
+
+  // ✅ WhatsApp Link with PRODUCT DETAILS
+  const getWhatsappLink = (whatsapp) => {
+    if (!whatsapp) return null;
+
+    // Number clean karein
+    let cleaned = whatsapp.replace(/[^0-9]/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '92' + cleaned.slice(1);
+    }
+    if (!cleaned.startsWith('92')) {
+      cleaned = '92' + cleaned;
+    }
+
+    // ✅ Poora message with product details
+    const message = `Assalam o Alaikum ${sellerName}!
+
+Main ne aapki yeh product *Swabi Market* par dekhi hai:
+
+━━━━━━━━━━━━━━━━━━━━
+📦 *PRODUCT DETAILS*
+━━━━━━━━━━━━━━━━━━━━
+
+*Title:* ${product?.title || 'N/A'}
+*Price:* PKR ${Number(product?.price)?.toLocaleString() || 'N/A'}
+*Category:* ${product?.category || 'N/A'}
+*Warranty:* ${product?.warranty || 'No Warranty'}
+*Location:* ${product?.location || 'Swabi'}
+
+📝 *Description:*
+${product?.description || 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━
+
+Kya yeh product abhi bhi available hai? 
+Mujhe iske baare mein aur maloomat chahiye.
+
+Shukriya! 🙏`;
+
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${cleaned}?text=${encodedMessage}`;
+  };
+
+  const whatsappLink = getWhatsappLink(sellerWhatsapp);
 
   return (
     <>
-      {/* ✅ Dynamic SEO Tags for each product */}
       <SEO
         title={`${product?.title} - PKR ${Number(product?.price)?.toLocaleString()}`}
         description={`${product?.title} for sale in ${product?.location || 'Swabi'} at PKR ${product?.price}. ${product?.description?.substring(0, 120)}...`}
@@ -87,7 +131,7 @@ export const SingleProductDetails = () => {
       <main className='w-full min-h-screen bg-gray-50 pt-16 pb-12 select-none'>
         <div className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
 
-          {/* Breadcrumb — SEO ke liye ahem */}
+          {/* Breadcrumb */}
           <nav aria-label="Breadcrumb" className='mb-3'>
             <ol className='flex items-center gap-2 text-xs text-gray-500'>
               <li><Link to="/" className='hover:text-[#0a4d3c]'>Home</Link></li>
@@ -98,13 +142,21 @@ export const SingleProductDetails = () => {
             </ol>
           </nav>
 
-          <div className='flex items-center justify-center mb-4'>
+          <div className='flex items-center justify-between mb-4'>
             <Link
               to="/"
               className='flex items-center gap-2 text-[#0a4d3c] font-semibold text-sm hover:underline'
             >
               <ArrowLeft className='w-4 h-4' aria-hidden="true" /> Back to Listings
             </Link>
+            <div className='flex items-center gap-2 text-gray-600'>
+              <button
+                aria-label="Share this product"
+                className='p-2 bg-white border border-gray-200 rounded-xl hover:text-[#0a4d3c] transition-colors cursor-pointer shadow-sm'
+              >
+                <Share2 className='w-4 h-4' aria-hidden="true" />
+              </button>
+            </div>
           </div>
 
           <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
@@ -210,6 +262,7 @@ export const SingleProductDetails = () => {
                 </div>
 
                 <div className='flex flex-col gap-2.5 pt-2'>
+                  {/* ✅ Call Seller */}
                   <a
                     href={`tel:${sellerPhone}`}
                     aria-label={`Call seller ${sellerName}`}
@@ -219,13 +272,28 @@ export const SingleProductDetails = () => {
                     <span>Call Seller</span>
                   </a>
 
+                  {/* ✅ WhatsApp Seller with Product Details */}
+                  {whatsappLink && (
+                    <a
+                      href={whatsappLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`WhatsApp seller ${sellerName}`}
+                      className='w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
+                    >
+                      <MessageCircle className='w-4 h-4' aria-hidden="true" />
+                      <span>WhatsApp Seller</span>
+                    </a>
+                  )}
+
+                  {/* ✅ View Seller Profile */}
                   <Link
-  to={`/seller/${product?.user_id}`}
-  className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
->
-  <User2 />
-  <span className='hidden sm:inline'>View Seller Profile</span>
-</Link>
+                    to={`/seller/${product?.user_id}`}
+                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
+                  >
+                    <User2 />
+                    <span className='hidden sm:inline'>View Seller Profile</span>
+                  </Link>
                 </div>
               </div>
             </aside>
