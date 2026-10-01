@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react'
-import { Mail, Lock, Globe, Loader2, ArrowLeft } from 'lucide-react'
+import { Mail, Lock, Globe, Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -26,6 +25,7 @@ export const LoginBottom = () => {
     const [isForgotView, setIsForgotView] = useState(false);
     const [forgotEmail, setForgotEmail] = useState("");
     const [forgotLoading, setForgotLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false); // ✅ NAYA
 
     const {
         register,
@@ -34,7 +34,7 @@ export const LoginBottom = () => {
         formState: { errors, isSubmitting, isValid }
     } = useForm({ resolver: zodResolver(userValidations), mode: 'onChange' });
 
-    // 1. REMEMBER ME LOGIC: Load saved credentials on component mount
+    // 1. REMEMBER ME LOGIC
     useEffect(() => {
         const savedIdentifier = localStorage.getItem("rememberedUser");
         const rememberMeFlag = localStorage.getItem("rememberMe");
@@ -60,7 +60,6 @@ export const LoginBottom = () => {
                 let rawPhone = identifier.startsWith("+92") ? "0" + identifier.slice(3) : identifier;
                 let formattedPhone = identifier.startsWith("0") ? "+92" + identifier.slice(1) : identifier;
 
-                // Search in profiles table
                 const { data: profileData } = await supabase
                     .from("profiles")
                     .select("email")
@@ -75,7 +74,6 @@ export const LoginBottom = () => {
                 }
             }
 
-            // Supabase Login
             const { error: loginError } = await supabase.auth.signInWithPassword({
                 email: loginEmail,
                 password: data.password,
@@ -83,7 +81,6 @@ export const LoginBottom = () => {
 
             if (loginError) throw loginError;
 
-            // Handle Remember Me Storage
             if (data.checkbox) {
                 localStorage.setItem("rememberMe", "true");
                 localStorage.setItem("rememberedUser", identifier);
@@ -103,7 +100,7 @@ export const LoginBottom = () => {
         }
     };
 
-    // 3. FORGOT PASSWORD LOGIC
+    // 3. FORGOT PASSWORD
     const handleForgotPassword = async (e) => {
         e.preventDefault();
         setAuthError("");
@@ -139,7 +136,7 @@ export const LoginBottom = () => {
             </h1>
 
             <div className="bg-[#e8eae8] flex flex-col items-center gap-4 p-6 sm:p-8 w-full sm:w-10/12 md:w-8/12 lg:max-w-md border border-gray-300 rounded-2xl shadow-lg transition-all duration-300">
-                
+
                 {/* Alert Messages */}
                 {authError && (
                     <div className="w-full p-3 bg-red-100 border border-red-300 text-red-700 text-xs rounded-xl font-semibold text-center">
@@ -204,7 +201,7 @@ export const LoginBottom = () => {
                 ) : (
                     /* --- STANDARD LOGIN FORM --- */
                     <form onSubmit={handleSubmit(onSubmit)} className="w-full flex flex-col gap-4">
-                        
+
                         {/* Email or Phone Input */}
                         <div className="relative w-full">
                             <Mail className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
@@ -224,18 +221,33 @@ export const LoginBottom = () => {
                             )}
                         </div>
 
-                        {/* Password Input */}
+                        {/* ✅ Password Input with Show/Hide */}
                         <div className="relative w-full">
                             <Lock className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
                             <input
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 name="password"
                                 id="password"
                                 autoComplete="current-password"
                                 placeholder="Password"
                                 {...register("password")}
-                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-3 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
+                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-12 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
                             />
+
+                            {/* ✅ Eye Toggle Button */}
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                className="absolute right-3.5 top-3.5 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                ) : (
+                                    <Eye className="w-5 h-5" />
+                                )}
+                            </button>
+
                             {errors.password && (
                                 <p className="text-red-600 text-xs mt-1 font-medium px-1">
                                     {errors.password.message}
