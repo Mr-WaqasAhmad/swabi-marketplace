@@ -5,7 +5,7 @@ export const ShimmerEffect = () => {
   const cards = [1, 2, 3, 4, 5, 6, 7, 8];
 
   return (
-    <div className='w-full min-h-screen pt-21 pb-12 select-none bg-gray-50'>
+    <div className='w-full min-h-screen pt-16 pb-12 select-none bg-gray-50'>
       
       {/* Top Banner & Search Bar Area */}
       <div className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
@@ -41,7 +41,7 @@ export const ShimmerEffect = () => {
       </div>
 
       {/* Product Cards Shimmer Grid */}
-      <div className='max-w-6xl mx-auto px-3 sm:px-6 animate-pulse'>
+      <div className='max-w-6xl mx-auto px-3 sm:px-6 animate-pulse mt-10'>
         <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-5'>
           {cards.map((_, i) => (
             <div 
