@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { MapPin, Heart, Code2 } from "lucide-react";
+import { MapPin, Heart } from "lucide-react";
 
 const github = new URL('../assets/images/github.png', import.meta.url).href;
 const facebook = new URL('../assets/images/facebook.png', import.meta.url).href;
@@ -97,8 +97,8 @@ export const Footer = () => {
             © {new Date().getFullYear()} Swabi Market. All rights reserved.
           </p>
 
-          {/* Developer Credit */}
-          <div className="flex items-center gap-2">
+          {/* Developer Credit + Social Icons */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-xs text-gray-500">Built with</span>
             <Heart className="w-3 h-3 text-red-500 fill-red-500" />
             <span className="text-xs text-gray-500">by</span>
@@ -111,34 +111,34 @@ export const Footer = () => {
               Waqas Ahmad
             </a>
 
-            {/* Social Icons */}
-            <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-700">
+            {/* ✅ Circular Social Icons */}
+            <div className="flex items-center gap-2 ml-1 sm:ml-2 pl-2 sm:pl-3 border-l border-gray-700">
               <a
                 href="https://wa.me/923100094241"
                 target="_blank"
                 rel="noreferrer"
                 title="WhatsApp"
-                className="w-6 h-6 bg-gray-800 hover:bg-[#25D366] rounded-md flex items-center justify-center transition-colors overflow-hidden"
+                className="w-7 h-7 bg-gray-800 hover:bg-[#25D366] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm overflow-hidden"
               >
-                <img src={whatsapp} alt="WhatsApp" className="w-3 h-3 scale-150" />
+                <img src={whatsapp} alt="WhatsApp" className="w-3.5 h-3.5 scale-150" />
               </a>
               <a
                 href="https://github.com/Mr-WaqasAhmad"
                 target="_blank"
                 rel="noreferrer"
                 title="GitHub"
-                className="w-6 h-6 bg-gray-800 hover:bg-gray-700 rounded-md flex items-center justify-center transition-colors overflow-hidden"
+                className="w-7 h-7 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm overflow-hidden"
               >
-                <img src={github} alt="GitHub" className="w-3 h-3 scale-150" />
+                <img src={github} alt="GitHub" className="w-3.5 h-3.5 scale-150" />
               </a>
               <a
                 href="https://www.facebook.com/profile.php?id=100081875383531"
                 target="_blank"
                 rel="noreferrer"
                 title="Facebook"
-                className="w-6 h-6 bg-gray-800 hover:bg-[#1877F2] rounded-md flex items-center justify-center transition-colors overflow-hidden"
+                className="w-7 h-7 bg-gray-800 hover:bg-[#1877F2] rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm overflow-hidden"
               >
-                <img src={facebook} alt="Facebook" className="w-3 h-3 scale-150" />
+                <img src={facebook} alt="Facebook" className="w-3.5 h-3.5 scale-150" />
               </a>
             </div>
           </div>
