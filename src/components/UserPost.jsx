@@ -1,4 +1,4 @@
-import { Edit3, Eye, MapPin, Plus, Settings, Trash2, Loader2 } from "lucide-react";
+import { Edit3, Eye, MapPin, Plus, Settings, Trash2, Loader2, CheckCircle, RefreshCw, AlertCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "./supabaseClient";
@@ -9,6 +9,7 @@ export const UserPost = () => {
   const [myAds, setMyAds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -45,7 +46,79 @@ export const UserPost = () => {
     };
   }, [user?.id]);
 
-  // Post delete handler
+  // ✅ Mark as Sold Handler
+  const handleMarkSold = async (postId) => {
+    const confirmSold = window.confirm("Kya aap is ad ko 'SOLD' mark karna chahte hain?");
+    if (!confirmSold) return;
+
+    try {
+      setUpdatingId(postId);
+
+      const { data, error } = await supabase
+        .from("posts")
+        .update({ status: "sold" })
+        .eq("id", postId)
+        .eq("user_id", user?.id)
+        .select();
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert("Update nahi hua — permission issue.");
+        return;
+      }
+
+      setMyAds((prev) =>
+        prev.map((item) =>
+          item.id === postId ? { ...item, status: "sold" } : item
+        )
+      );
+      alert("Ad 'SOLD' mark ho gayi! ✅");
+    } catch (err) {
+      console.error("Mark sold error:", err.message);
+      alert("Mark nahi ho saka: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // ✅ Reactivate Handler
+  const handleReactivate = async (postId) => {
+    const confirmReactivate = window.confirm("Kya aap is ad ko dobara ACTIVE karna chahte hain?");
+    if (!confirmReactivate) return;
+
+    try {
+      setUpdatingId(postId);
+
+      const { data, error } = await supabase
+        .from("posts")
+        .update({ status: "active" })
+        .eq("id", postId)
+        .eq("user_id", user?.id)
+        .select();
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert("Update nahi hua — permission issue.");
+        return;
+      }
+
+      setMyAds((prev) =>
+        prev.map((item) =>
+          item.id === postId ? { ...item, status: "active" } : item
+        )
+      );
+      alert("Ad dobara ACTIVE ho gayi! ✅");
+    } catch (err) {
+      console.error("Reactivate error:", err.message);
+      alert("Reactivate nahi ho saka: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // ✅ Delete Handler
   const handleDeletePost = async (postId, imageUrl) => {
     const confirmDelete = window.confirm("Kya aap zaroor is ad ko delete karna chahte hain?");
     if (!confirmDelete) return;
@@ -63,16 +136,14 @@ export const UserPost = () => {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        alert("Delete fail ho gaya! Supabase RLS Policy check karein (Permission Denied).");
+        alert("Delete fail ho gaya! Supabase RLS Policy check karein.");
         return;
       }
 
-      // Storage se image delete
       if (imageUrl) {
         const urlParts = imageUrl.split("/posts-images/");
         if (urlParts[1]) {
-          const filePath = urlParts[1];
-          await supabase.storage.from("posts-images").remove([filePath]);
+          await supabase.storage.from("posts-images").remove([urlParts[1]]);
         }
       }
 
@@ -87,6 +158,9 @@ export const UserPost = () => {
   };
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const totalAds = myAds.length;
+  const activeAds = myAds.filter(ad => ad.status === 'active' || !ad.status).length;
+  const soldAds = myAds.filter(ad => ad.status === 'sold').length;
 
   return (
     <div className="mt-16 p-3 sm:p-6 max-w-7xl mx-auto select-none min-h-[calc(100vh-4rem)] bg-gray-50">
@@ -112,16 +186,31 @@ export const UserPost = () => {
             to="/userprofile"
             className="flex items-center gap-2 bg-white text-[#0a4d3c] border border-[#0a4d3c]/30 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#0a4d3c] hover:text-white transition-all shadow-sm cursor-pointer"
           >
-            <Settings
-              className="w-4 h-4 animate-spin"
-              style={{ animation: "spin 2s ease-in-out infinite" }}
-            />
+            <Settings className="w-4 h-4 animate-spin" style={{ animation: "spin 2s ease-in-out infinite" }} />
             <span>Edit Profile</span>
           </Link>
         </div>
       </div>
 
-      {/* Section Title & Header Info */}
+      {/* Stats Bar */}
+      {!loading && myAds.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 my-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-3 text-center shadow-sm">
+            <p className="text-2xl font-bold text-gray-800">{totalAds}</p>
+            <p className="text-xs text-gray-500 font-medium">Total Ads</p>
+          </div>
+          <div className="bg-[#effffb] border border-emerald-200 rounded-xl p-3 text-center shadow-sm">
+            <p className="text-2xl font-bold text-[#0a4d3c]">{activeAds}</p>
+            <p className="text-xs text-emerald-700 font-medium">Active</p>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center shadow-sm">
+            <p className="text-2xl font-bold text-red-600">{soldAds}</p>
+            <p className="text-xs text-red-600 font-medium">Sold</p>
+          </div>
+        </div>
+      )}
+
+      {/* Section Title */}
       <div className="flex items-center justify-between my-6">
         <h3 className="text-lg sm:text-xl font-bold text-gray-800">My Posted Ads</h3>
         <div className="flex items-center gap-3">
@@ -138,7 +227,7 @@ export const UserPost = () => {
           <p className="text-sm font-semibold">Aapke ads load ho rahe hain...</p>
         </div>
       ) : myAds.length === 0 ? (
-        /* ✅ Empty State — Full Width Stylish Card */
+        /* Empty State */
         <div className="w-full">
           <Link
             to="/postad"
@@ -147,30 +236,26 @@ export const UserPost = () => {
             <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#0a4d3c]/10 group-hover:bg-[#0a4d3c] text-[#0a4d3c] group-hover:text-white rounded-full flex items-center justify-center transition-all duration-300 mb-5 group-hover:scale-110">
               <Plus className="w-10 h-10 sm:w-12 sm:h-12" />
             </div>
-
             <h3 className="text-xl sm:text-2xl font-bold text-gray-800 group-hover:text-[#0a4d3c] transition-colors mb-2">
               Post Your First Ad
             </h3>
-
             <p className="text-sm sm:text-base text-gray-500 max-w-md leading-relaxed mb-4">
               Aap ne abhi tak koi ad post nahi ki. Apni pehli cheez post karein aur hazaron buyers tak pohanchayein.
             </p>
-
             <div className="flex items-center gap-2 bg-[#0a4d3c] text-white px-6 py-3 rounded-xl font-semibold text-sm shadow-md group-hover:bg-[#D4AF37] group-hover:text-[#0a4d3c] transition-all">
               <Plus className="w-4 h-4" />
               <span>Post New Ad</span>
             </div>
-
             <p className="text-xs text-gray-400 mt-4 font-medium">
               FREE • 2 minute mein post ho jayegi
             </p>
           </Link>
         </div>
       ) : (
-        /* ✅ Ads Grid — Jab Ads Hain */
+        /* Ads Grid */
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
 
-          {/* Post New Ad Card (chhota) */}
+          {/* Post New Ad Card */}
           <Link
             to="/postad"
             className="group min-h-75 border-2 border-dashed border-[#0a4d3c]/40 hover:border-[#0a4d3c] bg-[#effffb]/30 hover:bg-[#effffb] rounded-2xl flex flex-col justify-center items-center p-4 text-center transition-all cursor-pointer shadow-sm hover:shadow-md"
@@ -187,68 +272,117 @@ export const UserPost = () => {
           </Link>
 
           {/* User Posted Ads */}
-          {myAds.map((ad) => (
-            <div
-              key={ad.id}
-              className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
-            >
-              <div className="flex flex-col items-center">
-                <div className="relative w-full aspect-square overflow-hidden flex justify-center items-center p-2 bg-gray-100">
-                  <img
-                    src={ad.image_url || "https://via.placeholder.com/300"}
-                    alt={ad.title}
-                    className="w-full h-full object-contain rounded-xl"
-                  />
-                </div>
+          {myAds.map((ad) => {
+            const isSold = ad.status === 'sold';
 
-                <div className="p-2 sm:p-3 w-full">
-                  <h4 className="font-bold text-gray-800 text-xs sm:text-sm line-clamp-1">
-                    {ad.title}
-                  </h4>
-                  <p className="text-[#0a4d3c] font-extrabold text-xs sm:text-sm mt-1">
-                    PKR {Number(ad.price)?.toLocaleString()}
-                  </p>
+            return (
+              <div
+                key={ad.id}
+                className={`bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between ${
+                  isSold ? 'border-red-200 opacity-90' : 'border-gray-200'
+                }`}
+              >
+                <div className="flex flex-col items-center">
+                  <div className="relative w-full aspect-square overflow-hidden flex justify-center items-center p-2 bg-gray-100">
+                    <img
+                      src={ad.image_url || "https://via.placeholder.com/300"}
+                      alt={ad.title}
+                      className={`w-full h-full object-contain rounded-xl ${isSold ? 'grayscale' : ''}`}
+                    />
 
-                  <div className="flex items-center gap-1 text-gray-500 text-[10px] sm:text-xs mt-1.5">
-                    <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
-                    <span className="truncate">{ad.location || "Swabi"}</span>
+                    {/* ✅ SOLD Badge */}
+                    {isSold && (
+                      <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        SOLD
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-2 sm:p-3 w-full">
+                    <h4 className="font-bold text-gray-800 text-xs sm:text-sm line-clamp-1">
+                      {ad.title}
+                    </h4>
+                    <p className={`font-extrabold text-xs sm:text-sm mt-1 ${isSold ? 'text-gray-400 line-through' : 'text-[#0a4d3c]'}`}>
+                      PKR {Number(ad.price)?.toLocaleString()}
+                    </p>
+
+                    <div className="flex items-center gap-1 text-gray-500 text-[10px] sm:text-xs mt-1.5">
+                      <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                      <span className="truncate">{ad.location || "Swabi"}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="p-2 sm:p-3 pt-0 flex flex-col gap-1.5 mt-1">
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="p-2 sm:p-3 pt-0 flex flex-col gap-1.5 mt-1">
+                  {/* ✅ Mark as Sold / Reactivate Button */}
+                  {isSold ? (
+                    <button
+                      type="button"
+                      disabled={updatingId === ad.id}
+                      onClick={() => handleReactivate(ad.id)}
+                      className="w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {updatingId === ad.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3" /> Reactivate
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={updatingId === ad.id}
+                      onClick={() => handleMarkSold(ad.id)}
+                      className="w-full bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {updatingId === ad.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <CheckCircle className="w-3 h-3" /> Mark as Sold
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Edit / Delete Row */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Link
+                      to={`/postad/${ad.id}`}
+                      className="bg-gray-100 text-gray-700 hover:bg-[#0a4d3c] hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors"
+                    >
+                      <Edit3 className="w-3 h-3" /> Edit
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={deletingId === ad.id}
+                      onClick={() => handleDeletePost(ad.id, ad.image_url)}
+                      className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {deletingId === ad.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* View Ad */}
                   <Link
-                    to={`/postad/${ad.id}`}
-                    className="bg-gray-100 text-gray-700 hover:bg-[#0a4d3c] hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors"
+                    to={`/singleproductdetails/${ad.id}`}
+                    className="bg-[#effffb] text-[#0a4d3c] border border-[#0a4d3c]/30 hover:bg-[#0a4d3c] hover:text-white flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors"
                   >
-                    <Edit3 className="w-3 h-3" /> Edit
+                    <Eye className="w-3 h-3" /> View
                   </Link>
-                  <button
-                    type="button"
-                    disabled={deletingId === ad.id}
-                    onClick={() => handleDeletePost(ad.id, ad.image_url)}
-                    className="bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {deletingId === ad.id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <>
-                        <Trash2 className="w-3 h-3" /> Delete
-                      </>
-                    )}
-                  </button>
                 </div>
-
-                <Link
-                  to={`/singleproductdetails/${ad.id}`}
-                  className="bg-[#effffb] text-[#0a4d3c] border border-[#0a4d3c]/30 hover:bg-[#0a4d3c] hover:text-white flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors"
-                >
-                  <Eye className="w-3 h-3" /> View
-                </Link>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
