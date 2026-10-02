@@ -5,19 +5,17 @@ import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
 import { CategorySelector } from './CategorySelector';
-import { SEO } from './SEO'; // ✅ ADD
+import { SEO } from './SEO';
 
+// ✅ Supabase se posts fetch karein
 const fetchPostsFromSupabase = async () => {
   const { data, error } = await supabase
     .from('posts')
     .select('*')
-    .eq('status', 'active')       // ✅ Sirf active products
+    .eq('status', 'active')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
+  if (error) throw new Error(error.message);
   return data;
 };
 
@@ -32,6 +30,18 @@ export const Home = () => {
     refetchOnWindowFocus: false,
   });
 
+  // ✅ Category Counts Calculate Karein
+  const categoryCounts = React.useMemo(() => {
+    if (!posts) return {};
+    return posts.reduce((acc, post) => {
+      if (post.category) {
+        acc[post.category] = (acc[post.category] || 0) + 1;
+      }
+      return acc;
+    }, {});
+  }, [posts]);
+
+  // ✅ Search + Category filter
   const filteredPosts = posts?.filter((post) => {
     const matchesSearch =
       post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -39,6 +49,7 @@ export const Home = () => {
       post.location?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory = !selectedCategory || post.category === selectedCategory;
+
     return matchesSearch && matchesCategory;
   });
 
@@ -54,7 +65,6 @@ export const Home = () => {
 
   return (
     <>
-      {/* ✅ SEO Tags */}
       <SEO
         title="Buy & Sell Anything in Swabi"
         description="Swabi ka sabse bada online marketplace. Mobiles, gaadiyan, property, electronics aur hazaron cheezein apne elaqay mein khareedein aur bechein. Free ads posting!"
@@ -62,7 +72,7 @@ export const Home = () => {
         url="/"
       />
 
-      <main className='w-full min-h-screen mt-21 select-none bg-[#eee]'>
+      <main className='w-full min-h-screen pt-14 sm:pt-16 select-none bg-[#eee]'>
         {/* Search Banner */}
         <section
           className='max-w-6xl mx-auto px-3 sm:px-6 mt-2 sm:mt-4'
@@ -76,6 +86,7 @@ export const Home = () => {
               Find local deals, smartphones, vehicles, real estate and much more directly from sellers near you.
             </p>
 
+            {/* Search Input */}
             <div className='relative w-full max-w-xl'>
               <label htmlFor="search-input" className="sr-only">Search products</label>
               <input
@@ -95,9 +106,11 @@ export const Home = () => {
               </button>
             </div>
 
+            {/* ✅ Category Selector with Counts */}
             <CategorySelector
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
+              categoryCounts={categoryCounts}
             />
           </div>
         </section>
