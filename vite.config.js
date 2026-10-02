@@ -8,7 +8,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
-    cssCodeSplit: true,           // ✅ CSS code splitting
+    cssCodeSplit: true,           // ✅ CSS splitting
     cssMinify: true,               // ✅ CSS minify
     rollupOptions: {
       output: {
@@ -24,12 +24,6 @@ export default defineConfig({
             if (id.includes('lucide-react')) return 'icons-vendor'
             return 'vendor'
           }
-        },
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name.endsWith('.css')) {
-            return 'assets/[name]-[hash][extname]'
-          }
-          return 'assets/[name]-[hash][extname]'
         },
       },
     },
