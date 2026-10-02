@@ -43,12 +43,14 @@ export const Header = () => {
 
       {/* Mobile Toggle Button */}
       <button
-        type="button"
-        onClick={() => setIsOpened(!isOpened)}
-        className="md:hidden p-2 text-gray-800 hover:text-[#0a4d3c] focus:outline-none"
-      >
-        {isOpened ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
+  type="button"
+  id="mobile-menu-button"
+  onClick={() => setIsOpened(!isOpened)}
+  className="md:hidden p-2 text-gray-800 hover:text-[#0a4d3c] focus:outline-none"
+  aria-label={isOpened ? "Close menu" : "Open menu"}
+>
+  {isOpened ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+</button>
 
       {/* Smooth Animated Mobile Drawer */}
       <MobileNavLinks isOpened={isOpened} setIsOpened={setIsOpened} />
