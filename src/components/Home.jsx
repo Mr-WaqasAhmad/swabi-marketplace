@@ -85,6 +85,15 @@ export const Home = () => {
     { value: 'price-high', label: 'Price: High to Low' },
   ];
 
+  // ✅ "New" badge check — 7 din se naya
+const isNewProduct = (createdAt) => {
+  if (!createdAt) return false;
+  const productDate = new Date(createdAt);
+  const now = new Date();
+  const diffInDays = (now - productDate) / (1000 * 60 * 60 * 24);
+  return diffInDays <= 7;  // 7 din ya kam
+};
+
   const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Newest First';
 
   if (isLoading) return <ShimmerEffect />;
