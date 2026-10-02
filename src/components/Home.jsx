@@ -43,13 +43,17 @@ export const Home = () => {
   }, [posts]);
 
   // ✅ "New" badge — 1 din se naya
-  const isNewProduct = (createdAt) => {
-    if (!createdAt) return false;
-    const productDate = new Date(createdAt);
-    const now = new Date();
-    const diffInDays = (now - productDate) / (1000 * 60 * 60 * 24);
-    return diffInDays <= 1;
-  };
+const isNewProduct = (createdAt) => {
+  if (!createdAt) return false;
+  const productDate = new Date(createdAt);
+  const now = new Date();
+  
+  return (
+    productDate.getDate() === now.getDate() &&
+    productDate.getMonth() === now.getMonth() &&
+    productDate.getFullYear() === now.getFullYear()
+  );
+};
 
   // ✅ Filter + Sort Logic
   const filteredPosts = useMemo(() => {
