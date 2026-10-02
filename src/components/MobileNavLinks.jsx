@@ -19,7 +19,6 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
       }
 
       // ✅ Agar click menu button par hai — close na karein
-      // Menu button ka ID ya class check karein
       const menuButton = document.getElementById('mobile-menu-button');
       if (menuButton && menuButton.contains(event.target)) {
         return;
@@ -29,13 +28,31 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
       setIsOpened(false);
     };
 
+    // ✅ Scroll par bhi close karein
+    const handleScroll = () => {
+      if (isOpened) {
+        setIsOpened(false);
+      }
+    };
+
+    // ✅ Escape key par bhi close karein
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && isOpened) {
+        setIsOpened(false);
+      }
+    };
+
     if (isOpened) {
-      // ✅ `click` use karein (mousedown nahi)
+      // ✅ `click` use karein (mousedown nahi) — kyunki button ka click pehle aata hai
       document.addEventListener('click', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+      window.addEventListener('scroll', handleScroll, { passive: true });
     }
 
     return () => {
       document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [isOpened, setIsOpened]);
 
