@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, ShieldCheck, User, Loader2, MessageCircle, Share2, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, ShieldCheck, User, Loader2, MessageCircle, Share2, Check, CheckCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
 const getSellerData = async (sellerId) => {
@@ -15,6 +15,7 @@ const getSellerData = async (sellerId) => {
 
   if (profileError) throw new Error(profileError.message);
 
+  // ✅ Saare posts (active + sold)
   const { data: posts, error: postsError } = await supabase
     .from('posts')
     .select('*')
@@ -58,13 +59,17 @@ export const SellerProfile = () => {
   }
 
   const { profile, posts } = data;
+
+  // ✅ Active aur Sold alag karein
+  const activePosts = posts.filter(p => p.status === 'active' || !p.status);
+  const soldPosts = posts.filter(p => p.status === 'sold');
+
   const sellerName = profile.full_name || 'User';
   const sellerPhone = profile.phone || 'Not provided';
   const sellerWhatsapp = profile.whatsapp || null;
   const sellerLocation = profile.location || 'Swabi, KP';
   const firstLetter = sellerName.trim()?.[0]?.toUpperCase();
 
-  // ✅ WhatsApp Link
   const getWhatsappLink = (whatsapp) => {
     if (!whatsapp) return null;
 
@@ -93,12 +98,11 @@ Shukriya! 🙏`;
 
   const whatsappLink = getWhatsappLink(sellerWhatsapp);
 
-  // ✅ Share Handler — Native share + Clipboard
   const handleShare = async () => {
     const shareUrl = `https://skpk.vercel.app/seller/${sellerId}`;
     const shareData = {
       title: `${sellerName} - Swabi Market`,
-      text: `${sellerName} ki profile Swabi Market par dekhein. ${posts.length} ads available.`,
+      text: `${sellerName} ki profile Swabi Market par dekhein. ${activePosts.length} active ads.`,
       url: shareUrl,
     };
 
@@ -120,7 +124,6 @@ Shukriya! 🙏`;
           setTimeout(() => setCopied(false), 2500);
         } catch (clipErr) {
           console.error('Clipboard error:', clipErr);
-          alert('Share nahi ho saka. Link: ' + shareUrl);
         }
       }
     }
@@ -130,7 +133,7 @@ Shukriya! 🙏`;
     <main className="w-full min-h-screen bg-gray-50 pt-20 pb-12 select-none">
       <div className="max-w-5xl mx-auto px-3 sm:px-6">
 
-        {/* ✅ Back + Share Bar */}
+        {/* Back + Share Bar */}
         <div className="flex items-center justify-between mb-4">
           <Link
             to="/home"
@@ -140,7 +143,6 @@ Shukriya! 🙏`;
           </Link>
 
           <div className="flex items-center gap-2">
-            {/* ✅ Share Button */}
             <button
               type="button"
               onClick={handleShare}
@@ -158,7 +160,6 @@ Shukriya! 🙏`;
               )}
             </button>
 
-            {/* ✅ Copied Toast */}
             {copied && (
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 animate-pulse">
                 ✓ Link copied!
@@ -193,6 +194,18 @@ Shukriya! 🙏`;
                 </div>
               </div>
 
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-3 mt-4 max-w-md mx-auto sm:mx-0">
+                <div className="bg-[#effffb] border border-emerald-200 rounded-xl p-2 text-center">
+                  <p className="text-lg font-bold text-[#0a4d3c]">{activePosts.length}</p>
+                  <p className="text-[10px] text-emerald-700 font-medium">Active Ads</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-2 text-center">
+                  <p className="text-lg font-bold text-red-600">{soldPosts.length}</p>
+                  <p className="text-[10px] text-red-600 font-medium">Sold</p>
+                </div>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 max-w-md mx-auto sm:mx-0">
                 {sellerPhone && sellerPhone !== 'Not provided' && (
@@ -221,21 +234,23 @@ Shukriya! 🙏`;
           </div>
         </div>
 
-        {/* Seller's Ads */}
+        {/* ✅ Active Ads Section */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-800">{sellerName}'s Ads</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {sellerName}'s Active Ads
+          </h2>
           <span className="text-sm font-medium text-[#0a4d3c] bg-[#effffb] px-3 py-1 rounded-full border border-[#0a4d3c]/20">
-            Total: {posts.length}
+            Total: {activePosts.length}
           </span>
         </div>
 
-        {posts.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 font-semibold text-sm bg-white rounded-2xl border border-gray-200">
-            Is seller ne abhi tak koi ad post nahi ki.
+        {activePosts.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 font-semibold text-sm bg-white rounded-2xl border border-gray-200 mb-8">
+            Is seller ki koi active ad nahi hai.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-            {posts.map((product) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-10">
+            {activePosts.map((product) => (
               <Link
                 key={product.id}
                 to={`/singleproductdetails/${product.id}`}
@@ -265,6 +280,61 @@ Shukriya! 🙏`;
             ))}
           </div>
         )}
+
+        {/* ✅ Sold Ads Section (agar koi sold hai to) */}
+        {soldPosts.length > 0 && (
+          <>
+            <div className="mb-6 flex items-center justify-between pt-6 border-t border-gray-200">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-red-600" />
+                <h2 className="text-xl font-bold text-gray-800">
+                  {sellerName}'s Sold Ads
+                </h2>
+              </div>
+              <span className="text-sm font-medium text-red-600 bg-red-50 px-3 py-1 rounded-full border border-red-200">
+                Total: {soldPosts.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              {soldPosts.map((product) => (
+                <Link
+                  key={product.id}
+                  to={`/singleproductdetails/${product.id}`}
+                  className="bg-white border border-red-200 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group opacity-90"
+                >
+                  <div className="relative aspect-square overflow-hidden bg-gray-100 p-2">
+                    <img
+                      src={product.image_url || 'https://via.placeholder.com/300'}
+                      alt={product.title}
+                      loading="lazy"
+                      className="w-full h-full object-contain grayscale group-hover:scale-105 transition-transform duration-300"
+                    />
+
+                    {/* ✅ SOLD Badge */}
+                    <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      SOLD
+                    </div>
+                  </div>
+                  <div className="p-2.5 sm:p-3 flex flex-col gap-1.5">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-800 truncate">
+                      {product.title}
+                    </h3>
+                    <p className="text-gray-400 font-black text-xs sm:text-sm line-through">
+                      PKR {Number(product.price)?.toLocaleString()}
+                    </p>
+                    <div className="flex items-center gap-1 text-gray-500 text-[10px] sm:text-xs truncate">
+                      <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+                      <span className="truncate">{product.location || 'Swabi'}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
+
       </div>
     </main>
   );
