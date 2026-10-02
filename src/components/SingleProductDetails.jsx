@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, MessageSquare, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, AlertCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
@@ -71,7 +71,10 @@ export const SingleProductDetails = () => {
   const sellerWhatsapp = seller.whatsapp || product?.whatsapp || null;
   const sellerLocation = seller.location || seller.address || product?.location || "Swabi, KP";
 
-  // ✅ WhatsApp Link with PRODUCT DETAILS
+  // ✅ SOLD Check
+  const isSold = product?.status === 'sold';
+
+  // WhatsApp Link
   const getWhatsappLink = (whatsapp) => {
     if (!whatsapp) return null;
 
@@ -113,9 +116,8 @@ Shukriya! 🙏`;
 
   const whatsappLink = getWhatsappLink(sellerWhatsapp);
 
-  // ✅ Share Handler — Native share + Clipboard
+  // Share Handler
   const handleShare = async () => {
-    // Link banayein
     const shareUrl = `https://skpk.vercel.app/singleproductdetails/${param.id}`;
     const shareData = {
       title: product?.title || 'Swabi Market',
@@ -124,28 +126,24 @@ Shukriya! 🙏`;
     };
 
     try {
-      // 1. Native share (mobile)
       if (navigator.share) {
         await navigator.share(shareData);
-        return; // Native share successful
+        return;
       }
 
-      // 2. Fallback: Clipboard copy
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
-      // Agar user cancel kare ya error aaye
       if (err.name !== 'AbortError') {
         console.error('Share error:', err);
-        // Fallback: Clipboard copy
         try {
           await navigator.clipboard.writeText(shareUrl);
           setCopied(true);
           setTimeout(() => setCopied(false), 2500);
         } catch (clipErr) {
           console.error('Clipboard error:', clipErr);
-          alert('Share nahi ho saka. Link manually copy karein: ' + shareUrl);
+          alert('Share nahi ho saka. Link: ' + shareUrl);
         }
       }
     }
@@ -186,7 +184,6 @@ Shukriya! 🙏`;
             </Link>
 
             <div className='flex items-center gap-2 text-gray-600'>
-              {/* ✅ Share Button — Functional */}
               <button
                 type="button"
                 onClick={handleShare}
@@ -204,7 +201,6 @@ Shukriya! 🙏`;
                 )}
               </button>
 
-              {/* ✅ Copied Toast */}
               {copied && (
                 <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 animate-pulse'>
                   ✓ Link copied!
@@ -212,6 +208,23 @@ Shukriya! 🙏`;
               )}
             </div>
           </div>
+
+          {/* ✅ SOLD Alert Banner */}
+          {isSold && (
+            <div className='mb-6 bg-red-50 border-2 border-red-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3 shadow-sm'>
+              <div className='bg-red-600 text-white p-2 rounded-full shrink-0'>
+                <Check className='w-5 h-5' strokeWidth={3} />
+              </div>
+              <div>
+                <h2 className='font-bold text-red-700 text-base sm:text-lg'>
+                  Yeh Product Bik Gaya Hai!
+                </h2>
+                <p className='text-xs sm:text-sm text-red-600 mt-1 leading-relaxed'>
+                  Yeh ad seller ne <strong>"Sold"</strong> mark kar di hai. Aap is product se related aur products dekh sakte hain ya <Link to="/home" className='underline font-semibold'>Home page</Link> par wapas jayein.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
 
@@ -236,8 +249,18 @@ Shukriya! 🙏`;
                       alt={`${product?.title} for sale in ${product?.location || 'Swabi'}`}
                       onLoad={() => setImageLoading(false)}
                       onError={() => { setImageLoading(false); setImageError(true); }}
-                      className={`w-[90%] h-[90%] object-contain transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                      className={`w-[90%] h-[90%] object-contain transition-opacity duration-300 ${
+                        imageLoading ? 'opacity-0' : 'opacity-100'
+                      } ${isSold ? 'grayscale opacity-80' : ''}`}
                     />
+                  )}
+
+                  {/* ✅ SOLD Overlay */}
+                  {isSold && (
+                    <div className='absolute top-4 left-4 bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2'>
+                      <Check className='w-4 h-4' strokeWidth={3} />
+                      SOLD
+                    </div>
                   )}
                 </div>
               </div>
@@ -249,7 +272,9 @@ Shukriya! 🙏`;
                     {product?.title}
                   </h1>
 
-                  <div className='text-2xl sm:text-3xl font-extrabold text-[#0a4d3c] mt-2'>
+                  <div className={`text-2xl sm:text-3xl font-extrabold mt-2 ${
+                    isSold ? 'text-gray-400 line-through' : 'text-[#0a4d3c]'
+                  }`}>
                     PKR {Number(product?.price)?.toLocaleString()}
                   </div>
 
@@ -316,31 +341,45 @@ Shukriya! 🙏`;
                 </div>
 
                 <div className='flex flex-col gap-2.5 pt-2'>
-                  {/* Call Seller */}
-                  <a
-                    href={`tel:${sellerPhone}`}
-                    aria-label={`Call seller ${sellerName}`}
-                    className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
-                  >
-                    <Phone className='w-4 h-4' aria-hidden="true" />
-                    <span>Call Seller</span>
-                  </a>
-
-                  {/* WhatsApp Seller */}
-                  {whatsappLink && (
+                  {/* ✅ Call Seller (Disabled if SOLD) */}
+                  {isSold ? (
+                    <div className='w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold text-sm py-3 px-4 rounded-2xl cursor-not-allowed border border-gray-200'>
+                      <Phone className='w-4 h-4' aria-hidden="true" />
+                      <span>Product Sold</span>
+                    </div>
+                  ) : (
                     <a
-                      href={whatsappLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`WhatsApp seller ${sellerName}`}
-                      className='w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
+                      href={`tel:${sellerPhone}`}
+                      aria-label={`Call seller ${sellerName}`}
+                      className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
                     >
-                      <MessageCircle className='w-4 h-4' aria-hidden="true" />
-                      <span>WhatsApp Seller</span>
+                      <Phone className='w-4 h-4' aria-hidden="true" />
+                      <span>Call Seller</span>
                     </a>
                   )}
 
-                  {/* View Seller Profile */}
+                  {/* ✅ WhatsApp Seller (Disabled if SOLD) */}
+                  {isSold ? (
+                    <div className='w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold text-sm py-3 px-4 rounded-2xl cursor-not-allowed border border-gray-200'>
+                      <MessageCircle className='w-4 h-4' aria-hidden="true" />
+                      <span>Product Sold</span>
+                    </div>
+                  ) : (
+                    whatsappLink && (
+                      <a
+                        href={whatsappLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`WhatsApp seller ${sellerName}`}
+                        className='w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
+                      >
+                        <MessageCircle className='w-4 h-4' aria-hidden="true" />
+                        <span>WhatsApp Seller</span>
+                      </a>
+                    )
+                  )}
+
+                  {/* View Seller Profile (always available) */}
                   <Link
                     to={`/seller/${product?.user_id}`}
                     className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
@@ -349,6 +388,22 @@ Shukriya! 🙏`;
                     <span>View Seller Profile</span>
                   </Link>
                 </div>
+
+                {/* ✅ Similar Products Suggestion */}
+                {isSold && (
+                  <div className='pt-3 border-t border-gray-100'>
+                    <p className='text-xs text-gray-500 text-center mb-2'>
+                      Aur products dekhein?
+                    </p>
+                    <Link
+                      to="/home"
+                      className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-2.5 px-4 rounded-xl shadow transition-all'
+                    >
+                      <ArrowLeft className='w-4 h-4' />
+                      <span>Back to Listings</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </aside>
           </div>
