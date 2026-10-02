@@ -7,14 +7,10 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
   const firstNameLetter =
     user?.full_name?.trim()?.[0] || user?.user_metadata?.full_name?.trim()?.[0];
 
-  // ✅ Ref for navbar
   const navRef = useRef(null);
-  const buttonRef = useRef(null);
 
-  // ✅ Outside click detect karein
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Agar navbar band hai, kuch nahi karna
       if (!isOpened) return;
 
       // ✅ Agar click navbar ke andar hai — close na karein
@@ -23,8 +19,9 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
       }
 
       // ✅ Agar click menu button par hai — close na karein
-      // (kyunki button khud toggle karta hai)
-      if (buttonRef.current && buttonRef.current.contains(event.target)) {
+      // Menu button ka ID ya class check karein
+      const menuButton = document.getElementById('mobile-menu-button');
+      if (menuButton && menuButton.contains(event.target)) {
         return;
       }
 
@@ -32,32 +29,13 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
       setIsOpened(false);
     };
 
-    // ✅ Scroll par bhi close karein
-    const handleScroll = () => {
-      if (isOpened) {
-        setIsOpened(false);
-      }
-    };
-
-    // ✅ Escape key par bhi close karein
-    const handleEscape = (event) => {
-      if (event.key === 'Escape' && isOpened) {
-        setIsOpened(false);
-      }
-    };
-
     if (isOpened) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-      window.addEventListener('scroll', handleScroll, { passive: true });
+      // ✅ `click` use karein (mousedown nahi)
+      document.addEventListener('click', handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [isOpened, setIsOpened]);
 
