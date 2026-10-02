@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Eye, MapPin, Search } from 'lucide-react';
+import { Eye, MapPin, Search, ArrowUpDown, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
 import { CategorySelector } from './CategorySelector';
 import { SEO } from './SEO';
 
-// ✅ Supabase se posts fetch karein
 const fetchPostsFromSupabase = async () => {
   const { data, error } = await supabase
     .from('posts')
@@ -22,6 +21,8 @@ const fetchPostsFromSupabase = async () => {
 export const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [sortBy, setSortBy] = useState('newest'); // ✅ Sort state
+  const [showSortMenu, setShowSortMenu] = useState(false); // ✅ Dropdown toggle
 
   const { data: posts, isLoading, isError } = useQuery({
     queryKey: ['products'],
@@ -30,8 +31,8 @@ export const Home = () => {
     refetchOnWindowFocus: false,
   });
 
-  // ✅ Category Counts Calculate Karein
-  const categoryCounts = React.useMemo(() => {
+  // ✅ Category Counts
+  const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
       if (post.category) {
@@ -41,17 +42,50 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ Search + Category filter
-  const filteredPosts = posts?.filter((post) => {
-    const matchesSearch =
-      post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.location?.toLowerCase().includes(searchQuery.toLowerCase());
+  // ✅ Filter + Sort Logic
+  const filteredPosts = useMemo(() => {
+    if (!posts) return [];
 
-    const matchesCategory = !selectedCategory || post.category === selectedCategory;
+    // Step 1: Filter
+    let filtered = posts.filter((post) => {
+      const matchesSearch =
+        post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.location?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch && matchesCategory;
-  });
+      const matchesCategory = !selectedCategory || post.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    // Step 2: Sort
+    switch (sortBy) {
+      case 'newest':
+        filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        break;
+      case 'oldest':
+        filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        break;
+      case 'price-low':
+        filtered.sort((a, b) => Number(a.price) - Number(b.price));
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => Number(b.price) - Number(a.price));
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  }, [posts, searchQuery, selectedCategory, sortBy]);
+
+  const sortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'price-low', label: 'Price: Low to High' },
+    { value: 'price-high', label: 'Price: High to Low' },
+  ];
+
+  const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Newest First';
 
   if (isLoading) return <ShimmerEffect />;
 
@@ -86,7 +120,6 @@ export const Home = () => {
               Find local deals, smartphones, vehicles, real estate and much more directly from sellers near you.
             </p>
 
-            {/* Search Input */}
             <div className='relative w-full max-w-xl'>
               <label htmlFor="search-input" className="sr-only">Search products</label>
               <input
@@ -106,7 +139,6 @@ export const Home = () => {
               </button>
             </div>
 
-            {/* ✅ Category Selector with Counts */}
             <CategorySelector
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -115,9 +147,71 @@ export const Home = () => {
           </div>
         </section>
 
+        {/* ✅ Sort Bar */}
+        <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+          <div className='flex items-center justify-between gap-2'>
+            <p className='text-xs sm:text-sm text-gray-600 font-medium'>
+              {filteredPosts.length} {filteredPosts.length === 1 ? 'product' : 'products'} found
+            </p>
+
+            {/* Sort Dropdown */}
+            <div className='relative'>
+              <button
+                type="button"
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className='flex items-center gap-1.5 bg-white border border-gray-300 hover:border-[#0a4d3c] text-gray-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-sm transition-all cursor-pointer'
+              >
+                <ArrowUpDown className='w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0a4d3c]' />
+                <span className='hidden sm:inline'>{currentSortLabel}</span>
+                <span className='sm:hidden'>Sort</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-gray-500 transition-transform ${
+                    showSortMenu ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showSortMenu && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className='fixed inset-0 z-40'
+                    onClick={() => setShowSortMenu(false)}
+                  />
+
+                  {/* Menu */}
+                  <div className='absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden'>
+                    {sortOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors cursor-pointer flex items-center justify-between ${
+                          sortBy === option.value
+                            ? 'bg-[#effffb] text-[#0a4d3c] font-bold'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span>{option.label}</span>
+                        {sortBy === option.value && (
+                          <span className='w-2 h-2 rounded-full bg-[#0a4d3c]'></span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* Products Grid */}
         <section
-          className='max-w-6xl mx-auto px-3 sm:px-6 mt-5 sm:mt-6 pb-12'
+          className='max-w-6xl mx-auto px-3 sm:px-6 mt-4 pb-12'
           aria-label="Product listings"
         >
           {filteredPosts?.length === 0 ? (
