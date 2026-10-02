@@ -42,12 +42,12 @@ export const Header = () => {
       <NavLinks />
 
       {/* Mobile Toggle Button */}
-      <button
+<button
   type="button"
   id="mobile-menu-button"
   onClick={() => setIsOpened(!isOpened)}
   aria-label={isOpened ? "Close menu" : "Open menu"}
-  className="md:hidden relative z-50 w-12 h-12 flex items-center justify-center text-gray-800 hover:text-[#0a4d3c] hover:bg-[#d8f3ecb9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] cursor-pointer"
+  className="md:hidden relative z-50 w-12 h-12 flex items-center justify-center text-gray-800 hover:text-[#0a4d3c] hover:bg-[#d8f3ecb9] rounded-xl focus:outline-none cursor-pointer"
 >
   {isOpened ? (
     <X className="w-6 h-6 pointer-events-none" />
