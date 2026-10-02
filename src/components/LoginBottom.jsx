@@ -25,7 +25,7 @@ export const LoginBottom = () => {
     const [isForgotView, setIsForgotView] = useState(false);
     const [forgotEmail, setForgotEmail] = useState("");
     const [forgotLoading, setForgotLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false); // ✅ NAYA
+    const [showPassword, setShowPassword] = useState(false);
 
     const {
         register,
@@ -34,7 +34,6 @@ export const LoginBottom = () => {
         formState: { errors, isSubmitting, isValid }
     } = useForm({ resolver: zodResolver(userValidations), mode: 'onChange' });
 
-    // 1. REMEMBER ME LOGIC
     useEffect(() => {
         const savedIdentifier = localStorage.getItem("rememberedUser");
         const rememberMeFlag = localStorage.getItem("rememberMe");
@@ -45,7 +44,6 @@ export const LoginBottom = () => {
         }
     }, [setValue]);
 
-    // 2. SUBMIT LOGIN
     const onSubmit = async (data) => {
         setAuthError("");
         setAuthSuccess("");
@@ -100,7 +98,6 @@ export const LoginBottom = () => {
         }
     };
 
-    // 3. FORGOT PASSWORD
     const handleForgotPassword = async (e) => {
         e.preventDefault();
         setAuthError("");
@@ -130,7 +127,7 @@ export const LoginBottom = () => {
     };
 
     return (
-        <div className="w-full flex flex-col items-center justify-start gap-3 px-4 pb-10">
+        <main className="w-full flex flex-col items-center justify-start gap-3 px-4 pb-10">
             <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] my-2 text-center">
                 {isForgotView ? "Reset Password" : "Welcome Back"}
             </h1>
@@ -221,7 +218,7 @@ export const LoginBottom = () => {
                             )}
                         </div>
 
-                        {/* ✅ Password Input with Show/Hide */}
+                        {/* ✅ Password Input with Show/Hide — FIXED TOUCH TARGET */}
                         <div className="relative w-full">
                             <Lock className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
                             <input
@@ -231,15 +228,15 @@ export const LoginBottom = () => {
                                 autoComplete="current-password"
                                 placeholder="Password"
                                 {...register("password")}
-                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-12 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
+                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-14 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
                             />
 
-                            {/* ✅ Eye Toggle Button */}
+                            {/* ✅ Eye Toggle Button — 44x44px Touch Target */}
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 aria-label={showPassword ? "Hide password" : "Show password"}
-                                className="absolute right-3.5 top-3.5 text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] rounded-lg cursor-pointer"
                             >
                                 {showPassword ? (
                                     <EyeOff className="w-5 h-5" />
@@ -317,6 +314,6 @@ export const LoginBottom = () => {
                     Pashto / Urdu
                 </span>
             </div>
-        </div>
+        </main>
     );
 };
