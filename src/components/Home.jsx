@@ -21,8 +21,8 @@ const fetchPostsFromSupabase = async () => {
 export const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState('newest'); // ✅ Sort state
-  const [showSortMenu, setShowSortMenu] = useState(false); // ✅ Dropdown toggle
+  const [sortBy, setSortBy] = useState('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const { data: posts, isLoading, isError } = useQuery({
     queryKey: ['products'],
@@ -42,11 +42,19 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
+  // ✅ "New" badge — 2 din se naya
+  const isNewProduct = (createdAt) => {
+    if (!createdAt) return false;
+    const productDate = new Date(createdAt);
+    const now = new Date();
+    const diffInDays = (now - productDate) / (1000 * 60 * 60 * 24);
+    return diffInDays <= 2;
+  };
+
   // ✅ Filter + Sort Logic
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
-    // Step 1: Filter
     let filtered = posts.filter((post) => {
       const matchesSearch =
         post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -57,7 +65,6 @@ export const Home = () => {
       return matchesSearch && matchesCategory;
     });
 
-    // Step 2: Sort
     switch (sortBy) {
       case 'newest':
         filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -84,15 +91,6 @@ export const Home = () => {
     { value: 'price-low', label: 'Price: Low to High' },
     { value: 'price-high', label: 'Price: High to Low' },
   ];
-
-  // ✅ "New" badge check — 7 din se naya
-const isNewProduct = (createdAt) => {
-  if (!createdAt) return false;
-  const productDate = new Date(createdAt);
-  const now = new Date();
-  const diffInDays = (now - productDate) / (1000 * 60 * 60 * 24);
-  return diffInDays <= 7;  // 7 din ya kam
-};
 
   const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Newest First';
 
@@ -156,14 +154,13 @@ const isNewProduct = (createdAt) => {
           </div>
         </section>
 
-        {/* ✅ Sort Bar */}
+        {/* Sort Bar */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between gap-2'>
             <p className='text-xs sm:text-sm text-gray-600 font-medium'>
               {filteredPosts.length} {filteredPosts.length === 1 ? 'product' : 'products'} found
             </p>
 
-            {/* Sort Dropdown */}
             <div className='relative'>
               <button
                 type="button"
@@ -180,16 +177,13 @@ const isNewProduct = (createdAt) => {
                 />
               </button>
 
-              {/* Dropdown Menu */}
               {showSortMenu && (
                 <>
-                  {/* Backdrop */}
                   <div
                     className='fixed inset-0 z-40'
                     onClick={() => setShowSortMenu(false)}
                   />
 
-                  {/* Menu */}
                   <div className='absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden'>
                     {sortOptions.map((option) => (
                       <button
@@ -244,6 +238,14 @@ const isNewProduct = (createdAt) => {
                       itemProp="image"
                       className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
                     />
+
+                    {/* ✅ NEW Badge */}
+                    {isNewProduct(product.created_at) && (
+                      <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 z-10'>
+                        <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
+                        NEW
+                      </div>
+                    )}
                   </div>
 
                   <div className='p-2.5 sm:p-3 flex flex-col gap-1.5 flex-1 justify-between'>
