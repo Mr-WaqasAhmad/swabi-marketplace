@@ -45,7 +45,6 @@ export const Signup = () => {
     const passwordValue = watch("password");
     const confirmPasswordValue = watch("confirmPassword");
 
-    // Helper: Phone number normalize karein
     const normalizePhone = (phone) => {
         const trimmed = phone.trim();
         if (trimmed.startsWith("+92")) return "0" + trimmed.slice(3);
@@ -61,7 +60,6 @@ export const Signup = () => {
             const rawWhatsapp = normalizePhone(data.userWhatsappNumber);
             const formattedPhone = data.userPhoneNumber.startsWith("0") ? "+92" + data.userPhoneNumber.slice(1) : data.userPhoneNumber;
 
-            // 1. Duplicate phone check
             const { data: existingPhone, error: phoneCheckError } = await supabase
                 .from("profiles")
                 .select("phone")
@@ -79,7 +77,6 @@ export const Signup = () => {
 
             const fullName = `${data.firstName} ${data.lastName}`.trim();
 
-            // 2. Supabase Auth Signup
             const { data: authData, error: signUpError } = await supabase.auth.signUp({
                 email: data.email.trim(),
                 password: data.password,
@@ -95,7 +92,6 @@ export const Signup = () => {
 
             if (signUpError) throw signUpError;
 
-            // 3. Save profile details
             if (authData.user) {
                 const { error: profileError } = await supabase.from("profiles").upsert([
                     {
@@ -111,12 +107,9 @@ export const Signup = () => {
                 if (profileError) throw profileError;
             }
 
-            // 4. Clear active session
             await supabase.auth.signOut();
 
-            setAuthSuccess(
-                "Account created successfully! Redirecting to login page..."
-            );
+            setAuthSuccess("Account created successfully! Redirecting to login page...");
 
             reset();
 
@@ -130,7 +123,7 @@ export const Signup = () => {
     }
 
     return (
-        <div className="flex flex-col w-full min-h-screen justify-center items-center select-none bg-[#e8eae8]">
+        <main className="flex flex-col w-full min-h-screen justify-center items-center select-none bg-[#e8eae8]">
             <LoginTop />
 
             <div className="w-full flex flex-col items-center justify-start gap-3 px-4 pb-10">
@@ -143,7 +136,6 @@ export const Signup = () => {
                     className="bg-[#e8eae8] flex flex-col items-center gap-4 p-6 sm:p-8 w-full sm:w-10/12 md:w-8/12 lg:max-w-xl border border-gray-300 rounded-2xl shadow-lg transition-all duration-300"
                 >
 
-                    {/* Backend Error/Success Alert Messages */}
                     {authError && (
                         <div className="w-full p-3 bg-red-100 border border-red-300 text-red-700 text-xs rounded-xl font-semibold text-center">
                             {authError}
@@ -193,6 +185,7 @@ export const Signup = () => {
 
                     {/* User Password */}
                     <div className='flex flex-col gap-3 w-full sm:flex-row'>
+                        {/* ✅ Password Input — FIXED TOUCH TARGET */}
                         <div className="relative w-full">
                             <Lock className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
                             <input
@@ -200,13 +193,15 @@ export const Signup = () => {
                                 placeholder="Password"
                                 autoComplete='off'
                                 {...register("password")}
-                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-10 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
+                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-14 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
                             />
 
+                            {/* ✅ Eye Toggle Button — 44x44px Touch Target */}
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3.5 top-3.5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] rounded-lg cursor-pointer"
                             >
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -218,6 +213,7 @@ export const Signup = () => {
                             )}
                         </div>
 
+                        {/* ✅ Confirm Password Input — FIXED TOUCH TARGET */}
                         <div className="relative w-full">
                             <Lock className="absolute left-3.5 top-3.5 w-5 h-5 text-gray-500" />
                             <input
@@ -225,13 +221,15 @@ export const Signup = () => {
                                 placeholder="Confirm Password"
                                 autoComplete='off'
                                 {...register("confirmPassword")}
-                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-10 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
+                                className="border border-gray-300 rounded-xl py-3 pl-11 pr-14 placeholder:text-gray-400 w-full focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] bg-white text-sm transition-all shadow-sm"
                             />
 
+                            {/* ✅ Eye Toggle Button — 44x44px Touch Target */}
                             <button
                                 type="button"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3.5 top-3.5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] rounded-lg cursor-pointer"
                             >
                                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
@@ -372,6 +370,6 @@ export const Signup = () => {
                 </div>
 
             </div>
-        </div>
+        </main>
     )
 }
