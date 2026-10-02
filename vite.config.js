@@ -8,22 +8,12 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
-    cssCodeSplit: true,           // ✅ CSS splitting
-    cssMinify: true,               // ✅ CSS minify
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react-router')) return 'react-vendor'
-            if (id.includes('react-dom')) return 'react-vendor'
-            if (id.includes('react/')) return 'react-vendor'
-            if (id.includes('@tanstack')) return 'query-vendor'
-            if (id.includes('zod')) return 'form-vendor'
-            if (id.includes('react-hook-form')) return 'form-vendor'
-            if (id.includes('@hookform')) return 'form-vendor'
-            if (id.includes('lucide-react')) return 'icons-vendor'
-            return 'vendor'
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'form-vendor': ['react-hook-form', 'zod', '@hookform/resolvers'],
+          'query-vendor': ['@tanstack/react-query'],
         },
       },
     },
