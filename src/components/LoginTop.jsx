@@ -26,7 +26,7 @@ export const LoginTop = () => {
 
       <div className="flex items-center gap-1.5 mt-3 text-2xl sm:text-3xl font-bold tracking-tight">
         <span className="text-[#111827]">Swabi</span>
-        <span className="text-[#B8860B]">Marketplace</span>
+        <span className="text-[#8B6914]">Marketplace</span>
       </div>
 
       <p className="text-xs sm:text-sm text-gray-600 font-medium mt-1 text-center">
