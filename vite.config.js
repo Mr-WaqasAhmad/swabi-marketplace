@@ -10,11 +10,19 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // ✅ Vendor chunks alag karein
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'form-vendor': ['react-hook-form', 'zod', '@hookform/resolvers'],
-          'query-vendor': ['@tanstack/react-query'],
+        manualChunks(id) {
+          // ✅ node_modules ki libraries alag karein
+          if (id.includes('node_modules')) {
+            if (id.includes('react-router')) return 'react-vendor'
+            if (id.includes('react-dom')) return 'react-vendor'
+            if (id.includes('react')) return 'react-vendor'
+            if (id.includes('@tanstack')) return 'query-vendor'
+            if (id.includes('zod')) return 'form-vendor'
+            if (id.includes('react-hook-form')) return 'form-vendor'
+            if (id.includes('@hookform')) return 'form-vendor'
+            if (id.includes('lucide-react')) return 'icons-vendor'
+            return 'vendor'
+          }
         },
       },
     },
