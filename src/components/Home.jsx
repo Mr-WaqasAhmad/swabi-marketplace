@@ -11,9 +11,13 @@ const fetchPostsFromSupabase = async () => {
   const { data, error } = await supabase
     .from('posts')
     .select('*')
+    .eq('status', 'active')       // ✅ Sirf active products
     .order('created_at', { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw new Error(error.message);
+  }
+
   return data;
 };
 
