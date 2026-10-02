@@ -8,14 +8,15 @@ export default defineConfig({
     tailwindcss(),
   ],
   build: {
+    cssCodeSplit: true,           // ✅ CSS code splitting
+    cssMinify: true,               // ✅ CSS minify
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // ✅ node_modules ki libraries alag karein
           if (id.includes('node_modules')) {
             if (id.includes('react-router')) return 'react-vendor'
             if (id.includes('react-dom')) return 'react-vendor'
-            if (id.includes('react')) return 'react-vendor'
+            if (id.includes('react/')) return 'react-vendor'
             if (id.includes('@tanstack')) return 'query-vendor'
             if (id.includes('zod')) return 'form-vendor'
             if (id.includes('react-hook-form')) return 'form-vendor'
@@ -23,6 +24,12 @@ export default defineConfig({
             if (id.includes('lucide-react')) return 'icons-vendor'
             return 'vendor'
           }
+        },
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.css')) {
+            return 'assets/[name]-[hash][extname]'
+          }
+          return 'assets/[name]-[hash][extname]'
         },
       },
     },
