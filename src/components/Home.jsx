@@ -42,13 +42,13 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ "New" badge — 2 din se naya
+  // ✅ "New" badge — 1 din se naya
   const isNewProduct = (createdAt) => {
     if (!createdAt) return false;
     const productDate = new Date(createdAt);
     const now = new Date();
     const diffInDays = (now - productDate) / (1000 * 60 * 60 * 24);
-    return diffInDays <= 2;
+    return diffInDays <= 1;
   };
 
   // ✅ Filter + Sort Logic
