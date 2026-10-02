@@ -46,10 +46,14 @@ export const Header = () => {
   type="button"
   id="mobile-menu-button"
   onClick={() => setIsOpened(!isOpened)}
-  className="md:hidden p-2 text-gray-800 hover:text-[#0a4d3c] focus:outline-none"
   aria-label={isOpened ? "Close menu" : "Open menu"}
+  className="md:hidden relative z-50 w-12 h-12 flex items-center justify-center text-gray-800 hover:text-[#0a4d3c] hover:bg-[#d8f3ecb9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0a4d3c] cursor-pointer"
 >
-  {isOpened ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+  {isOpened ? (
+    <X className="w-6 h-6 pointer-events-none" />
+  ) : (
+    <Menu className="w-6 h-6 pointer-events-none" />
+  )}
 </button>
 
       {/* Smooth Animated Mobile Drawer */}
