@@ -495,10 +495,7 @@ Shukriya! 🙏`;
         </div>
       </main>
 
-              </div>
-      </main>
-
-      {/* ✅ Order Modal */}
+      ✅ Order Modal */}
       {!isSold && sellerWhatsapp && (
         <OrderModal
           isOpen={showOrderModal}
