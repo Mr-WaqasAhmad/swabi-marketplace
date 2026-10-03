@@ -81,11 +81,13 @@ export const SingleProductDetails = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
+  // ✅ FIX: queryKey mein Date.now() — taake har dafa fresh fetch ho
   const { data: product, isLoading, isError } = useQuery({
-    queryKey: ['product', param.id],
+    queryKey: ['product', param.id, Date.now()],
     queryFn: () => getData(param.id),
     enabled: !!param.id,
     staleTime: 0,
+    gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
