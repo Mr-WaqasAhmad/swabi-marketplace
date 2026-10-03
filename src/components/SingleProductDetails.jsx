@@ -19,14 +19,17 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
-  // ✅ 2. View count barhayein (background mein)
-  supabase
-    .from('posts')
-    .update({ views: (post.views || 0) + 1 })
-    .eq('id', id)
-    .then(({ error }) => {
-      if (error) console.warn("View increment error:", error.message);
-    });
+  // ✅ 2. View count SIRF tab barhayein jab Home page se aaya ho
+  const refParam = new URLSearchParams(window.location.search).get('ref');
+  if (refParam === 'home') {
+    supabase
+      .from('posts')
+      .update({ views: (post.views || 0) + 1 })
+      .eq('id', id)
+      .then(({ error }) => {
+        if (error) console.warn("View increment error:", error.message);
+      });
+  }
 
   // 3. Seller details fetch karein
   let sellerDetails = null;
@@ -41,7 +44,7 @@ const getData = async (id) => {
     sellerDetails = userData;
   }
 
-  // ✅ 4. Similar products fetch karein (same category)
+  // 4. Similar products fetch karein
   let similarProducts = [];
   if (post.category) {
     const { data: similar, error: similarError } = await supabase
@@ -315,7 +318,6 @@ Shukriya! 🙏`;
                       <span className='text-amber-900'>Warranty: {product?.warranty || 'No Warranty'}</span>
                     </div>
 
-                    {/* ✅ Views Count */}
                     <div className='flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold w-fit'>
                       <Eye className='w-3.5 h-3.5 text-gray-600' aria-hidden="true" />
                       <span className='text-gray-700'>{product?.views || 0} views</span>
@@ -422,7 +424,7 @@ Shukriya! 🙏`;
             </aside>
           </div>
 
-          {/* ✅ SIMILAR PRODUCTS SECTION */}
+          {/* SIMILAR PRODUCTS SECTION */}
           {similarProducts.length > 0 && (
             <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
               <div className='flex items-center justify-between mb-5'>
@@ -430,14 +432,23 @@ Shukriya! 🙏`;
                   <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
                     Similar Products
                   </h2>
+                  <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                    Same category ke aur products
+                  </p>
                 </div>
+                <Link
+                  to="/home"
+                  className='text-xs sm:text-sm font-semibold text-[#0a4d3c] hover:underline flex items-center gap-1'
+                >
+                  View All <ArrowLeft className='w-3.5 h-3.5 rotate-180' />
+                </Link>
               </div>
 
               <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4'>
                 {similarProducts.map((similarProduct) => (
                   <Link
                     key={similarProduct.id}
-                    to={`/singleproductdetails/${similarProduct.id}`}
+                    to={`/singleproductdetails/${similarProduct.id}?ref=similar`}
                     className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group'
                   >
                     <div className='relative aspect-square overflow-hidden bg-gray-100 p-2'>
