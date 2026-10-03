@@ -9,6 +9,7 @@ import { SEO } from './SEO';
 const getData = async (id) => {
   if (!id) return null;
 
+  // 1. Post fetch karein
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select('*')
@@ -18,6 +19,16 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
+  // ✅ 2. View count barhayein (background mein, await nahi karte)
+  supabase
+    .from('posts')
+    .update({ views: (post.views || 0) + 1 })
+    .eq('id', id)
+    .then(({ error }) => {
+      if (error) console.warn("View increment error:", error.message);
+    });
+
+  // 3. Seller details fetch karein
   let sellerDetails = null;
   if (post.user_id) {
     const { data: userData, error: profileError } = await supabase
