@@ -162,6 +162,27 @@ export const Home = () => {
           </div>
         </section>
 
+{/* ✅ Total Products Stats Bar */}
+<section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+  <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
+    <div className='flex items-center gap-2'>
+      <span className='w-2 h-2 rounded-full bg-emerald-500 animate-pulse'></span>
+      <span className='text-xs sm:text-sm font-semibold text-gray-700'>
+        Total <span className='text-[#0a4d3c] font-bold'>{filteredPosts.length}</span> {filteredPosts.length === 1 ? 'Product' : 'Products'} Available
+      </span>
+    </div>
+
+    {filteredPosts.filter(p => isNewProduct(p.created_at)).length > 0 && (
+      <div className='flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
+        <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
+        <span className='text-[10px] sm:text-xs font-bold text-emerald-700'>
+          {filteredPosts.filter(p => isNewProduct(p.created_at)).length} NEW
+        </span>
+      </div>
+    )}
+  </div>
+</section>
+        
         {/* Sort Bar */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between gap-2'>
