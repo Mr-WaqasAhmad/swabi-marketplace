@@ -90,7 +90,7 @@ Kya aap se koi deal ho sakti hai?
 
 Mujhe aap ki products ke baare mein maloomat chahiye.
 
-Shukriya! 🙏`;
+Shukriya!`;
 
     const encodedMessage = encodeURIComponent(message);
     return `https://wa.me/${cleaned}?text=${encodedMessage}`;
@@ -252,8 +252,8 @@ Shukriya! 🙏`;
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-10">
             {activePosts.map((product) => (
               <Link
-                key={product.id}
-                to={`/singleproductdetails/${product.id}`}
+  key={product.id}
+  to={`/singleproductdetails/${product.id}?ref=seller`}
                 className="bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group"
               >
                 <div className="relative aspect-square overflow-hidden bg-gray-100 p-2">
