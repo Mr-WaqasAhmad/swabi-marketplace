@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, Search, ArrowUpDown, ChevronDown } from 'lucide-react';
+import { MapPin, Search, ArrowUpDown, ChevronDown, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
@@ -31,7 +31,6 @@ export const Home = () => {
     refetchOnWindowFocus: false,
   });
 
-  // ✅ Category Counts
   const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
@@ -42,7 +41,6 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ "New" badge — sirf usi din post hue products
   const isNewProduct = (createdAt) => {
     if (!createdAt) return false;
     const productDate = new Date(createdAt);
@@ -55,7 +53,6 @@ export const Home = () => {
     );
   };
 
-  // ✅ Real-time Product Age calculate karein
   const getProductAge = (createdAt) => {
     if (!createdAt) return '';
 
@@ -82,7 +79,6 @@ export const Home = () => {
     return `${diffInYears} years ago`;
   };
 
-  // ✅ Filter + Sort Logic
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
@@ -291,14 +287,13 @@ export const Home = () => {
                       className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
                     />
 
-                    {/* ✅ Top Badges — NEW*/}
-                    import { MapPin, Search, ArrowUpDown, ChevronDown } from 'lucide-react';
-                      {/* Views Count Badge */}
-                      <div className='bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 ml-auto'>
-                        <Eye className='w-3 h-3' aria-hidden="true" />
-                        {product.views || 0}
+                    {/* ✅ NEW Badge */}
+                    {isNewProduct(product.created_at) && (
+                      <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 z-10'>
+                        <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
+                        NEW
                       </div>
-                    </div>
+                    )}
 
                     {/* Watermark */}
                     <div className='absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
