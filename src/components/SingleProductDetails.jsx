@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye, ShoppingCart, Flag } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
@@ -179,6 +179,38 @@ Shukriya! 🙏`;
         }
       }
     }
+  };
+
+  // ✅ Report Ad Handler
+  const handleReportAd = () => {
+    const reportMessage = `Assalam o Alaikum!
+
+🚩 *AD REPORT*
+
+━━━━━━━━━━━━━━━━━━━━
+📦 *PRODUCT DETAILS*
+━━━━━━━━━━━━━━━━━━━━
+*Title:* ${product?.title}
+*Price:* PKR ${Number(product?.price)?.toLocaleString()}
+*Seller:* ${sellerName}
+*Product ID:* ${product?.id}
+
+━━━━━━━━━━━━━━━━━━━━
+
+*Reason:* Yeh ad report karni hai kyunki...
+
+[Baraye meherbani yahan reason likhein:
+- Fake ad hai
+- Galat information hai
+- Duplicate ad hai
+- Illegal product hai
+- Spam hai
+- Koi aur issue]
+
+Shukriya! 🙏`;
+
+    const encodedMessage = encodeURIComponent(reportMessage);
+    window.open(`https://wa.me/923100094241?text=${encodedMessage}`, '_blank');
   };
 
   return (
@@ -412,7 +444,7 @@ Shukriya! 🙏`;
                         </a>
                       )}
 
-                      {/* ✅ Order Now Button */}
+                      {/* Order Now Button */}
                       <button
                         type='button'
                         onClick={() => setShowOrderModal(true)}
@@ -431,6 +463,16 @@ Shukriya! 🙏`;
                     <User2 />
                     <span>View Seller Profile</span>
                   </Link>
+
+                  {/* ✅ Report Ad Button */}
+                  <button
+                    type="button"
+                    onClick={handleReportAd}
+                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 transition-all duration-200 text-red-600 cursor-pointer'
+                  >
+                    <Flag className='w-3.5 h-3.5' />
+                    <span>Report This Ad</span>
+                  </button>
                 </div>
               </div>
             </aside>
