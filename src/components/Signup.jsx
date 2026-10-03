@@ -58,23 +58,26 @@ export const Signup = () => {
     try {
         const rawPhone = normalizePhone(data.userPhoneNumber);
         const rawWhatsapp = normalizePhone(data.userWhatsappNumber);
-        const formattedPhone = data.userPhoneNumber.startsWith("0") 
-            ? "+92" + data.userPhoneNumber.slice(1) 
+        const formattedPhone = data.userPhoneNumber.startsWith("0")
+            ? "+92" + data.userPhoneNumber.slice(1)
             : data.userPhoneNumber;
 
-        // ✅ 1. Phone duplicate check
+        // ============================================
+        // ✅ 1. PHONE DUPLICATE CHECK
+        // ============================================
         const { data: existingPhone, error: phoneCheckError } = await supabase
             .from("profiles")
             .select("phone")
             .or(`phone.eq.${rawPhone},phone.eq.${formattedPhone}`)
             .maybeSingle();
 
-        // ✅ FIX: Network error pe signup rok dein
+        // Agar network error → signup rok dein
         if (phoneCheckError) {
-            setAuthError("Network issue. Please check your connection and try again.");
+            setAuthError("Network issue. Please check your internet and try again.");
             return;
         }
 
+        // Agar phone already registered → rok dein
         if (existingPhone) {
             setAuthError("This phone number is already registered! Please use a different number.");
             return;
@@ -82,7 +85,9 @@ export const Signup = () => {
 
         const fullName = `${data.firstName} ${data.lastName}`.trim();
 
-        // ✅ 2. Signup
+        // ============================================
+        // ✅ 2. SIGNUP (auth.users mein user banaye)
+        // ============================================
         const { data: authData, error: signUpError } = await supabase.auth.signUp({
             email: data.email.trim(),
             password: data.password,
@@ -98,40 +103,51 @@ export const Signup = () => {
 
         if (signUpError) throw signUpError;
 
-        // ✅ 3. Fallback (agar trigger ne nahi banaya to manually)
-        if (authData?.user?.id) {
-            try {
-                const { error: profileError } = await supabase
-                    .from("profiles")
-                    .upsert(
-                        [{
-                            id: authData.user.id,
-                            email: data.email.trim(),
-                            full_name: fullName,
-                            phone: rawPhone,
-                            whatsapp: rawWhatsapp,
-                            location: data.userAddress,
-                        }],
-                        { onConflict: "id", ignoreDuplicates: true }
-                    );
-
-                if (profileError) {
-                    console.warn("Profile upsert warning:", profileError.message);
-                }
-            } catch (profileErr) {
-                console.warn("Profile fallback warning:", profileErr?.message);
-            }
+        if (!authData?.user?.id) {
+            throw new Error("Signup fail ho gaya. Please try again.");
         }
 
-        // ✅ 4. Sign out
+        // ============================================
+        // ✅ 3. PROFILE BANAYE (Manual — 100% Control)
+        // ============================================
+        const { error: profileError } = await supabase
+            .from("profiles")
+            .insert([{
+                id: authData.user.id,
+                email: data.email.trim(),
+                full_name: fullName,
+                phone: rawPhone,
+                whatsapp: rawWhatsapp,
+                location: data.userAddress,
+            }]);
+
+        // 🚨 AGAR PROFILE FAIL HO GAYI → USER KO ERROR DIKHAYEIN
+        if (profileError) {
+            console.error("Profile create error:", profileError.message);
+            
+            // Cleanup: auth user bhi delete karein (orphan user na ho)
+            try {
+                await supabase.rpc('delete_user');
+            } catch (cleanupErr) {
+                console.warn("Cleanup warning:", cleanupErr?.message);
+            }
+            
+            throw new Error(
+                "Account save nahi ho saka. Please try again or contact support."
+            );
+        }
+
+        // ============================================
+        // ✅ 4. SIGNOUT (user login page pe jaye)
+        // ============================================
         await supabase.auth.signOut();
 
-        setAuthSuccess("Account created successfully! Redirecting to login page...");
+        setAuthSuccess("Account created successfully! Please login.");
         reset();
 
         setTimeout(() => {
             navigate('/login', { replace: true });
-        }, 1000);
+        }, 1200);
 
     } catch (error) {
         setAuthError(error.message || "Signup failed. Please try again.");
