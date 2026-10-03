@@ -293,13 +293,13 @@ export const Home = () => {
                       </div>
 
                       <Link
-                        to={`/singleproductdetails/${product.id}`}
-                        aria-label={`View details of ${product.title}`}
-                        className='w-full flex items-center justify-center gap-1 border border-[#0a4d3c] text-[#0a4d3c] hover:bg-[#0a4d3c] hover:text-white font-semibold text-[11px] sm:text-xs py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors duration-200 cursor-pointer'
-                      >
-                        <Eye className='w-3 h-3 sm:w-3.5 sm:h-3.5' aria-hidden="true" />
-                        <span>View Details</span>
-                      </Link>
+  to={`/singleproductdetails/${product.id}?ref=home`}
+  aria-label={`View details of ${product.title}`}
+  className='w-full flex items-center justify-center gap-1 border border-[#0a4d3c] text-[#0a4d3c] hover:bg-[#0a4d3c] hover:text-white font-semibold text-[11px] sm:text-xs py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors duration-200 cursor-pointer'
+>
+  <Eye className='w-3 h-3 sm:w-3.5 sm:h-3.5' aria-hidden="true" />
+  <span>View Details</span>
+</Link>
                     </div>
                   </div>
                 </article>
