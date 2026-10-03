@@ -494,6 +494,20 @@ Shukriya! 🙏`;
 
         </div>
       </main>
+
+              </div>
+      </main>
+
+      {/* ✅ Order Modal */}
+      {!isSold && sellerWhatsapp && (
+        <OrderModal
+          isOpen={showOrderModal}
+          onClose={() => setShowOrderModal(false)}
+          product={product}
+          sellerName={sellerName}
+          sellerWhatsapp={sellerWhatsapp}
+        />
+      )}
     </>
   );
 };
