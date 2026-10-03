@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye, ShoppingCart, Flag } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
@@ -21,7 +21,7 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
-  // 3. Seller details fetch karein
+  // 2. Seller details fetch karein
   let sellerDetails = null;
   if (post.user_id) {
     const { data: userData, error: profileError } = await supabase
@@ -34,7 +34,7 @@ const getData = async (id) => {
     sellerDetails = userData;
   }
 
-  // 4. Similar products fetch karein
+  // 3. Similar products fetch karein
   let similarProducts = [];
   if (post.category) {
     const { data: similar, error: similarError } = await supabase
@@ -74,35 +74,9 @@ export const SingleProductDetails = () => {
     queryFn: () => getData(param.id),
     enabled: !!param.id,
     staleTime: 0,
-    gcTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
-
-  // ✅ View count increment — useEffect se (HAMESHA chalega)
-  useEffect(() => {
-    if (!product?.id) return;
-
-    const refParam = new URLSearchParams(window.location.search).get('ref');
-
-    if (refParam === 'home') {
-      console.log('✅ View incrementing for:', product.title);
-
-      supabase
-        .from('posts')
-        .update({ views: (product.views || 0) + 1 })
-        .eq('id', product.id)
-        .then(({ error }) => {
-          if (error) {
-            console.warn("❌ View increment error:", error.message);
-          } else {
-            console.log('✅ View incremented successfully');
-          }
-        });
-    } else {
-      console.log('⚠️ Ref is not "home":', refParam);
-    }
-  }, [product?.id]);
 
   if (isLoading) return <ShimmerEffectForSingleItem />;
 
@@ -340,11 +314,6 @@ Shukriya! 🙏`;
                     <div className='flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/60 text-xs font-bold w-fit'>
                       <Wrench className='w-3.5 h-3.5 text-[#D4AF37]' aria-hidden="true" />
                       <span className='text-amber-900'>Warranty: {product?.warranty || 'No Warranty'}</span>
-                    </div>
-
-                    <div className='flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold w-fit'>
-                      <Eye className='w-3.5 h-3.5 text-gray-600' aria-hidden="true" />
-                      <span className='text-gray-700'>{product?.views || 0} views</span>
                     </div>
                   </div>
                 </header>
