@@ -83,14 +83,14 @@ export const SingleProductDetails = () => {
 
   // ✅ FIX: queryKey mein Date.now() — taake har dafa fresh fetch ho
   const { data: product, isLoading, isError } = useQuery({
-    queryKey: ['product', param.id, Date.now()],
-    queryFn: () => getData(param.id),
-    enabled: !!param.id,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-  });
+  queryKey: ['product', param.id],
+  queryFn: () => getData(param.id),
+  enabled: !!param.id,
+  staleTime: 0,
+  gcTime: 0,
+  refetchOnMount: true,
+  refetchOnWindowFocus: true,
+});
 
   if (isLoading) return <ShimmerEffectForSingleItem />;
 
