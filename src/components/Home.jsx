@@ -161,12 +161,12 @@ export const Home = () => {
             />
           </div>
         </section>
-
+        
 {/* ✅ Total Products Stats Bar */}
 <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
   <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
     <div className='flex items-center gap-2'>
-      <span className='w-2 h-2 rounded-full bg-emerald-500 animate-pulse'></span>
+      <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
       <span className='text-xs sm:text-sm font-semibold text-gray-700'>
         Total <span className='text-[#0a4d3c] font-bold'>{filteredPosts.length}</span> {filteredPosts.length === 1 ? 'Product' : 'Products'} Available
       </span>
