@@ -52,75 +52,92 @@ export const Signup = () => {
     };
 
     const onSubmit = async (data) => {
-        setAuthError("");
-        setAuthSuccess("");
+    setAuthError("");
+    setAuthSuccess("");
 
-        try {
-            const rawPhone = normalizePhone(data.userPhoneNumber);
-            const rawWhatsapp = normalizePhone(data.userWhatsappNumber);
-            const formattedPhone = data.userPhoneNumber.startsWith("0") ? "+92" + data.userPhoneNumber.slice(1) : data.userPhoneNumber;
+    try {
+        const rawPhone = normalizePhone(data.userPhoneNumber);
+        const rawWhatsapp = normalizePhone(data.userWhatsappNumber);
+        const formattedPhone = data.userPhoneNumber.startsWith("0") 
+            ? "+92" + data.userPhoneNumber.slice(1) 
+            : data.userPhoneNumber;
 
-            const { data: existingPhone, error: phoneCheckError } = await supabase
-                .from("profiles")
-                .select("phone")
-                .or(`phone.eq.${rawPhone},phone.eq.${formattedPhone}`)
-                .maybeSingle();
+        // ✅ 1. Phone duplicate check
+        const { data: existingPhone, error: phoneCheckError } = await supabase
+            .from("profiles")
+            .select("phone")
+            .or(`phone.eq.${rawPhone},phone.eq.${formattedPhone}`)
+            .maybeSingle();
 
-            if (phoneCheckError) {
-                console.error("Phone check error:", phoneCheckError.message);
-            }
-
-            if (existingPhone) {
-                setAuthError("This phone number is already registered! Please use a different number.");
-                return;
-            }
-
-            const fullName = `${data.firstName} ${data.lastName}`.trim();
-
-            const { data: authData, error: signUpError } = await supabase.auth.signUp({
-                email: data.email.trim(),
-                password: data.password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        phone: rawPhone,
-                        whatsapp: rawWhatsapp,
-                        location: data.userAddress,
-                    },
-                },
-            });
-
-            if (signUpError) throw signUpError;
-
-            if (authData.user) {
-                const { error: profileError } = await supabase.from("profiles").upsert([
-                    {
-                        id: authData.user.id,
-                        email: data.email.trim(),
-                        full_name: fullName,
-                        phone: rawPhone,
-                        whatsapp: rawWhatsapp,
-                        location: data.userAddress,
-                    },
-                ]);
-
-                if (profileError) throw profileError;
-            }
-
-            await supabase.auth.signOut();
-
-            setAuthSuccess("Account created successfully! Redirecting to login page...");
-
-            reset();
-
-            setTimeout(() => {
-                navigate('/login', { replace: true });
-            }, 1000);
-
-        } catch (error) {
-            setAuthError(error.message || "Signup failed. Please try again.");
+        if (phoneCheckError) {
+            console.warn("Phone check warning:", phoneCheckError.message);
         }
+
+        if (existingPhone) {
+            setAuthError("This phone number is already registered! Please use a different number.");
+            return;
+        }
+
+        const fullName = `${data.firstName} ${data.lastName}`.trim();
+
+        // ✅ 2. Signup
+        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+            email: data.email.trim(),
+            password: data.password,
+            options: {
+                data: {
+                    full_name: fullName,
+                    phone: rawPhone,
+                    whatsapp: rawWhatsapp,
+                    location: data.userAddress,
+                },
+            },
+        });
+
+        if (signUpError) throw signUpError;
+
+        // ✅ 3. Fallback: Agar trigger fail hua to manually upsert karein
+        // (ON CONFLICT DO NOTHING — agar trigger ne bana diya hai to skip ho jayega)
+        if (authData?.user?.id) {
+            try {
+                const { error: profileError } = await supabase
+                    .from("profiles")
+                    .upsert(
+                        [{
+                            id: authData.user.id,
+                            email: data.email.trim(),
+                            full_name: fullName,
+                            phone: rawPhone,
+                            whatsapp: rawWhatsapp,
+                            location: data.userAddress,
+                        }],
+                        { onConflict: "id", ignoreDuplicates: true }
+                    );
+
+                if (profileError) {
+                    // ❌ Error throw nahi karenge — bas log karenge
+                    console.warn("Profile upsert warning:", profileError.message);
+                }
+            } catch (profileErr) {
+                // ❌ Crash nahi karenge
+                console.warn("Profile fallback warning:", profileErr?.message);
+            }
+        }
+
+        // ✅ 4. Sign out (taake user login page pe jaye)
+        await supabase.auth.signOut();
+
+        setAuthSuccess("Account created successfully! Redirecting to login page...");
+        reset();
+
+        setTimeout(() => {
+            navigate('/login', { replace: true });
+        }, 1000);
+
+    } catch (error) {
+        setAuthError(error.message || "Signup failed. Please try again.");
     }
+};
 
     return (
         <main className="flex flex-col w-full min-h-screen justify-center items-center select-none bg-[#e8eae8]">
