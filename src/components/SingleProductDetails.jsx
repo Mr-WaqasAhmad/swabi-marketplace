@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
@@ -19,7 +19,7 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
-  // ✅ 2. View count barhayein (background mein, await nahi karte)
+  // ✅ 2. View count barhayein (background mein)
   supabase
     .from('posts')
     .update({ views: (post.views || 0) + 1 })
@@ -41,6 +41,22 @@ const getData = async (id) => {
     sellerDetails = userData;
   }
 
+  // ✅ 4. Similar products fetch karein (same category)
+  let similarProducts = [];
+  if (post.category) {
+    const { data: similar, error: similarError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('category', post.category)
+      .eq('status', 'active')
+      .neq('id', id)
+      .order('created_at', { ascending: false })
+      .limit(4);
+
+    if (similarError) console.warn("Similar products fetch warning:", similarError.message);
+    similarProducts = similar || [];
+  }
+
   return {
     ...post,
     full_name: sellerDetails?.full_name || post.full_name,
@@ -48,6 +64,7 @@ const getData = async (id) => {
     whatsapp: sellerDetails?.whatsapp || null,
     location: sellerDetails?.location || sellerDetails?.address || post.location,
     user_details: sellerDetails,
+    similar_products: similarProducts,
   };
 };
 
@@ -82,8 +99,8 @@ export const SingleProductDetails = () => {
   const sellerWhatsapp = seller.whatsapp || product?.whatsapp || null;
   const sellerLocation = seller.location || seller.address || product?.location || "Swabi, KP";
 
-  // ✅ SOLD Check
   const isSold = product?.status === 'sold';
+  const similarProducts = product?.similar_products || [];
 
   // WhatsApp Link
   const getWhatsappLink = (whatsapp) => {
@@ -154,7 +171,6 @@ Shukriya! 🙏`;
           setTimeout(() => setCopied(false), 2500);
         } catch (clipErr) {
           console.error('Clipboard error:', clipErr);
-          alert('Share nahi ho saka. Link: ' + shareUrl);
         }
       }
     }
@@ -220,7 +236,7 @@ Shukriya! 🙏`;
             </div>
           </div>
 
-          {/* ✅ SOLD Alert Banner */}
+          {/* SOLD Alert */}
           {isSold && (
             <div className='mb-6 bg-red-50 border-2 border-red-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3 shadow-sm'>
               <div className='bg-red-600 text-white p-2 rounded-full shrink-0'>
@@ -266,7 +282,6 @@ Shukriya! 🙏`;
                     />
                   )}
 
-                  {/* ✅ SOLD Overlay */}
                   {isSold && (
                     <div className='absolute top-4 left-4 bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2'>
                       <Check className='w-4 h-4' strokeWidth={3} />
@@ -294,10 +309,16 @@ Shukriya! 🙏`;
                     <span className='font-medium'>{product?.location}</span>
                   </address>
 
-                  <div className='mt-4 pt-3 border-t border-gray-50'>
+                  <div className='mt-4 pt-3 border-t border-gray-50 flex flex-wrap items-center gap-3'>
                     <div className='flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/60 text-xs font-bold w-fit'>
                       <Wrench className='w-3.5 h-3.5 text-[#D4AF37]' aria-hidden="true" />
                       <span className='text-amber-900'>Warranty: {product?.warranty || 'No Warranty'}</span>
+                    </div>
+
+                    {/* ✅ Views Count */}
+                    <div className='flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold w-fit'>
+                      <Eye className='w-3.5 h-3.5 text-gray-600' aria-hidden="true" />
+                      <span className='text-gray-700'>{product?.views || 0} views</span>
                     </div>
                   </div>
                 </header>
@@ -352,45 +373,43 @@ Shukriya! 🙏`;
                 </div>
 
                 <div className='flex flex-col gap-2.5 pt-2'>
-                  {/* ✅ Call Seller (Disabled if SOLD) */}
                   {isSold ? (
-                    <div className='w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold text-sm py-3 px-4 rounded-2xl cursor-not-allowed border border-gray-200'>
-                      <Phone className='w-4 h-4' aria-hidden="true" />
-                      <span>Product Sold</span>
-                    </div>
-                  ) : (
-                    <a
-                      href={`tel:${sellerPhone}`}
-                      aria-label={`Call seller ${sellerName}`}
-                      className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
-                    >
-                      <Phone className='w-4 h-4' aria-hidden="true" />
-                      <span>Call Seller</span>
-                    </a>
-                  )}
-
-                  {/* ✅ WhatsApp Seller (Disabled if SOLD) */}
-                  {isSold ? (
-                    <div className='w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold text-sm py-3 px-4 rounded-2xl cursor-not-allowed border border-gray-200'>
-                      <MessageCircle className='w-4 h-4' aria-hidden="true" />
-                      <span>Product Sold</span>
-                    </div>
-                  ) : (
-                    whatsappLink && (
-                      <a
-                        href={whatsappLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`WhatsApp seller ${sellerName}`}
-                        className='w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
-                      >
+                    <>
+                      <div className='w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold text-sm py-3 px-4 rounded-2xl cursor-not-allowed border border-gray-200'>
+                        <Phone className='w-4 h-4' aria-hidden="true" />
+                        <span>Product Sold</span>
+                      </div>
+                      <div className='w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-semibold text-sm py-3 px-4 rounded-2xl cursor-not-allowed border border-gray-200'>
                         <MessageCircle className='w-4 h-4' aria-hidden="true" />
-                        <span>WhatsApp Seller</span>
+                        <span>Product Sold</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <a
+                        href={`tel:${sellerPhone}`}
+                        aria-label={`Call seller ${sellerName}`}
+                        className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
+                      >
+                        <Phone className='w-4 h-4' aria-hidden="true" />
+                        <span>Call Seller</span>
                       </a>
-                    )
+
+                      {whatsappLink && (
+                        <a
+                          href={whatsappLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`WhatsApp seller ${sellerName}`}
+                          className='w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
+                        >
+                          <MessageCircle className='w-4 h-4' aria-hidden="true" />
+                          <span>WhatsApp Seller</span>
+                        </a>
+                      )}
+                    </>
                   )}
 
-                  {/* View Seller Profile (always available) */}
                   <Link
                     to={`/seller/${product?.user_id}`}
                     className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
@@ -399,25 +418,64 @@ Shukriya! 🙏`;
                     <span>View Seller Profile</span>
                   </Link>
                 </div>
-
-                {/* ✅ Similar Products Suggestion */}
-                {isSold && (
-                  <div className='pt-3 border-t border-gray-100'>
-                    <p className='text-xs text-gray-500 text-center mb-2'>
-                      Aur products dekhein?
-                    </p>
-                    <Link
-                      to="/home"
-                      className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-2.5 px-4 rounded-xl shadow transition-all'
-                    >
-                      <ArrowLeft className='w-4 h-4' />
-                      <span>Back to Listings</span>
-                    </Link>
-                  </div>
-                )}
               </div>
             </aside>
           </div>
+
+          {/* ✅ SIMILAR PRODUCTS SECTION */}
+          {similarProducts.length > 0 && (
+            <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
+              <div className='flex items-center justify-between mb-5'>
+                <div>
+                  <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
+                    Similar Products
+                  </h2>
+                  <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                    Same category ke aur products
+                  </p>
+                </div>
+                <Link
+                  to="/home"
+                  className='text-xs sm:text-sm font-semibold text-[#0a4d3c] hover:underline flex items-center gap-1'
+                >
+                  View All <ArrowLeft className='w-3.5 h-3.5 rotate-180' />
+                </Link>
+              </div>
+
+              <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4'>
+                {similarProducts.map((similarProduct) => (
+                  <Link
+                    key={similarProduct.id}
+                    to={`/singleproductdetails/${similarProduct.id}`}
+                    className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group'
+                  >
+                    <div className='relative aspect-square overflow-hidden bg-gray-100 p-2'>
+                      <img
+                        src={similarProduct.image_url || "https://via.placeholder.com/300"}
+                        alt={similarProduct.title}
+                        loading="lazy"
+                        className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
+                      />
+                    </div>
+
+                    <div className='p-2.5 sm:p-3 flex flex-col gap-1.5'>
+                      <h3 className='text-xs sm:text-sm font-bold text-gray-800 truncate'>
+                        {similarProduct.title}
+                      </h3>
+                      <p className='text-[#0a4d3c] font-black text-xs sm:text-sm'>
+                        PKR {Number(similarProduct.price)?.toLocaleString()}
+                      </p>
+                      <div className='flex items-center gap-1 text-gray-500 text-[10px] sm:text-xs truncate'>
+                        <MapPin className='w-3 h-3 text-red-500 shrink-0' />
+                        <span className='truncate'>{similarProduct.location || 'Swabi'}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
         </div>
       </main>
     </>
