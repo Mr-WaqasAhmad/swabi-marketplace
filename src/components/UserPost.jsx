@@ -374,7 +374,7 @@ export const UserPost = () => {
 
                   {/* View Ad */}
                   <Link
-                    to={`/singleproductdetails/${ad.id}`}
+  to={`/singleproductdetails/${ad.id}?ref=own`}
                     className="bg-[#effffb] text-[#0a4d3c] border border-[#0a4d3c]/30 hover:bg-[#0a4d3c] hover:text-white flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold transition-colors"
                   >
                     <Eye className="w-3 h-3" /> View
