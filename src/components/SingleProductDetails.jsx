@@ -434,12 +434,6 @@ Shukriya! 🙏`;
                     Same category ke aur products
                   </p>
                 </div>
-                <Link
-                  to="/home"
-                  className='text-xs sm:text-sm font-semibold text-[#0a4d3c] hover:underline flex items-center gap-1'
-                >
-                  View All <ArrowLeft className='w-3.5 h-3.5 rotate-180' />
-                </Link>
               </div>
 
               <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4'>
