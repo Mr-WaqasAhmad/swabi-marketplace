@@ -31,6 +31,7 @@ export const Home = () => {
     refetchOnWindowFocus: false,
   });
 
+  // ✅ Category Counts
   const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
@@ -41,6 +42,7 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
+  // ✅ "New" badge — sirf usi din post hue products
   const isNewProduct = (createdAt) => {
     if (!createdAt) return false;
     const productDate = new Date(createdAt);
@@ -53,6 +55,7 @@ export const Home = () => {
     );
   };
 
+  // ✅ Real-time Product Age calculate karein
   const getProductAge = (createdAt) => {
     if (!createdAt) return '';
 
@@ -79,6 +82,7 @@ export const Home = () => {
     return `${diffInYears} years ago`;
   };
 
+  // ✅ Filter + Sort Logic
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
@@ -105,9 +109,6 @@ export const Home = () => {
       case 'price-high':
         filtered.sort((a, b) => Number(b.price) - Number(a.price));
         break;
-      case 'popular':
-        filtered.sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
-        break;
       default:
         break;
     }
@@ -120,7 +121,6 @@ export const Home = () => {
     { value: 'oldest', label: 'Oldest First' },
     { value: 'price-low', label: 'Price: Low to High' },
     { value: 'price-high', label: 'Price: High to Low' },
-    { value: 'popular', label: 'Most Viewed' },
   ];
 
   const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Newest First';
