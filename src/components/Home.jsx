@@ -42,18 +42,18 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ "New" badge — 1 din se naya
-const isNewProduct = (createdAt) => {
-  if (!createdAt) return false;
-  const productDate = new Date(createdAt);
-  const now = new Date();
-  
-  return (
-    productDate.getDate() === now.getDate() &&
-    productDate.getMonth() === now.getMonth() &&
-    productDate.getFullYear() === now.getFullYear()
-  );
-};
+  // ✅ "New" badge — sirf usi din post hue products
+  const isNewProduct = (createdAt) => {
+    if (!createdAt) return false;
+    const productDate = new Date(createdAt);
+    const now = new Date();
+
+    return (
+      productDate.getDate() === now.getDate() &&
+      productDate.getMonth() === now.getMonth() &&
+      productDate.getFullYear() === now.getFullYear()
+    );
+  };
 
   // ✅ Filter + Sort Logic
   const filteredPosts = useMemo(() => {
@@ -82,6 +82,9 @@ const isNewProduct = (createdAt) => {
       case 'price-high':
         filtered.sort((a, b) => Number(b.price) - Number(a.price));
         break;
+      case 'popular':
+        filtered.sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
+        break;
       default:
         break;
     }
@@ -94,6 +97,7 @@ const isNewProduct = (createdAt) => {
     { value: 'oldest', label: 'Oldest First' },
     { value: 'price-low', label: 'Price: Low to High' },
     { value: 'price-high', label: 'Price: High to Low' },
+    { value: 'popular', label: 'Most Viewed' },
   ];
 
   const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Newest First';
@@ -117,7 +121,7 @@ const isNewProduct = (createdAt) => {
         url="/"
       />
 
-      <main className='w-full min-h-screen pt-18 select-none bg-[#eee]'>
+      <main className='w-full min-h-screen pt-14 sm:pt-16 select-none bg-[#eee]'>
         {/* Search Banner */}
         <section
           className='max-w-6xl mx-auto px-3 sm:px-6 mt-2 sm:mt-4'
@@ -243,13 +247,24 @@ const isNewProduct = (createdAt) => {
                       className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
                     />
 
-                    {/* ✅ NEW Badge */}
-                    {isNewProduct(product.created_at) && (
-                      <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 z-10'>
-                        <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
-                        NEW
+                    {/* ✅ Top Badges — NEW + Views */}
+                    <div className='absolute top-2 left-2 right-2 flex items-start justify-between gap-1 z-10'>
+                      {/* NEW Badge */}
+                      {isNewProduct(product.created_at) ? (
+                        <div className='bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1'>
+                          <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
+                          NEW
+                        </div>
+                      ) : (
+                        <div></div>
+                      )}
+
+                      {/* ✅ Views Count Badge */}
+                      <div className='bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 ml-auto'>
+                        <Eye className='w-3 h-3' aria-hidden="true" />
+                        {product.views || 0}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   <div className='p-2.5 sm:p-3 flex flex-col gap-1.5 flex-1 justify-between'>
