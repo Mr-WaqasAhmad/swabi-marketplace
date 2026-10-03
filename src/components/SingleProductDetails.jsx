@@ -411,20 +411,18 @@ Shukriya! 🙏`;
                           <span>WhatsApp Seller</span>
                         </a>
                       )}
+
+                      {/* ✅ Order Now Button */}
+                      <button
+                        type='button'
+                        onClick={() => setShowOrderModal(true)}
+                        className='w-full flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#b8962e] text-[#0a4d3c] font-bold text-sm py-3 px-4 rounded-2xl shadow-md transition-all cursor-pointer'
+                      >
+                        <ShoppingCart className='w-4 h-4' aria-hidden="true" />
+                        <span>Order Now</span>
+                      </button>
                     </>
                   )}
-
-                  {/* ✅ Order Now Button */}
-{!isSold && (
-  <button
-    type='button'
-    onClick={() => setShowOrderModal(true)}
-    className='w-full flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#b8962e] text-[#0a4d3c] font-bold text-sm py-3 px-4 rounded-2xl shadow-md transition-all cursor-pointer'
-  >
-    <ShoppingCart className='w-4 h-4' aria-hidden="true" />
-    <span>Order Now</span>
-  </button>
-)}
 
                   <Link
                     to={`/seller/${product?.user_id}`}
@@ -495,7 +493,7 @@ Shukriya! 🙏`;
         </div>
       </main>
 
-      ✅ Order Modal */}
+      {/* ✅ Order Modal */}
       {!isSold && sellerWhatsapp && (
         <OrderModal
           isOpen={showOrderModal}
