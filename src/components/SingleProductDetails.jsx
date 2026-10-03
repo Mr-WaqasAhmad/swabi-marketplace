@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
 import { OrderModal } from './OrderModal';
+import { ReportModal } from './ReportModal';
 import { SEO } from './SEO';
 
 const getData = async (id) => {
@@ -78,6 +79,7 @@ export const SingleProductDetails = () => {
   const [imageLoading, setImageLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', param.id],
@@ -179,38 +181,6 @@ Shukriya! 🙏`;
         }
       }
     }
-  };
-
-  // ✅ Report Ad Handler
-  const handleReportAd = () => {
-    const reportMessage = `Assalam o Alaikum!
-
-🚩 *AD REPORT*
-
-━━━━━━━━━━━━━━━━━━━━
-📦 *PRODUCT DETAILS*
-━━━━━━━━━━━━━━━━━━━━
-*Title:* ${product?.title}
-*Price:* PKR ${Number(product?.price)?.toLocaleString()}
-*Seller:* ${sellerName}
-*Product ID:* ${product?.id}
-
-━━━━━━━━━━━━━━━━━━━━
-
-*Reason:* Yeh ad report karni hai kyunki...
-
-[Baraye meherbani yahan reason likhein:
-- Fake ad hai
-- Galat information hai
-- Duplicate ad hai
-- Illegal product hai
-- Spam hai
-- Koi aur issue]
-
-Shukriya! 🙏`;
-
-    const encodedMessage = encodeURIComponent(reportMessage);
-    window.open(`https://wa.me/923100094241?text=${encodedMessage}`, '_blank');
   };
 
   return (
@@ -325,6 +295,12 @@ Shukriya! 🙏`;
                       SOLD
                     </div>
                   )}
+
+                  {/* Watermark */}
+                  <div className='absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
+                    <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
+                    Swabi Market
+                  </div>
                 </div>
               </div>
 
@@ -464,10 +440,10 @@ Shukriya! 🙏`;
                     <span>View Seller Profile</span>
                   </Link>
 
-                  {/* ✅ Report Ad Button */}
+                  {/* Report Ad Button */}
                   <button
                     type="button"
-                    onClick={handleReportAd}
+                    onClick={() => setShowReportModal(true)}
                     className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 transition-all duration-200 text-red-600 cursor-pointer'
                   >
                     <Flag className='w-3.5 h-3.5' />
@@ -545,6 +521,16 @@ Shukriya! 🙏`;
           sellerWhatsapp={sellerWhatsapp}
         />
       )}
+
+      {/* ✅ Report Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        product={product}
+        sellerName={sellerName}
+        sellerPhone={sellerPhone}
+        sellerLocation={sellerLocation}
+      />
     </>
   );
 };
