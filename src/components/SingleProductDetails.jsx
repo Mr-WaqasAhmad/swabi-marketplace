@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye, ShoppingCart } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
+import { OrderModal } from './OrderModal';
 import { SEO } from './SEO';
 
 const getData = async (id) => {
@@ -76,6 +77,7 @@ export const SingleProductDetails = () => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', param.id],
@@ -411,6 +413,18 @@ Shukriya! 🙏`;
                       )}
                     </>
                   )}
+
+                  {/* ✅ Order Now Button */}
+{!isSold && (
+  <button
+    type='button'
+    onClick={() => setShowOrderModal(true)}
+    className='w-full flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#b8962e] text-[#0a4d3c] font-bold text-sm py-3 px-4 rounded-2xl shadow-md transition-all cursor-pointer'
+  >
+    <ShoppingCart className='w-4 h-4' aria-hidden="true" />
+    <span>Order Now</span>
+  </button>
+)}
 
                   <Link
                     to={`/seller/${product?.user_id}`}
