@@ -69,8 +69,10 @@ export const Signup = () => {
             .or(`phone.eq.${rawPhone},phone.eq.${formattedPhone}`)
             .maybeSingle();
 
+        // ✅ FIX: Network error pe signup rok dein
         if (phoneCheckError) {
-            console.warn("Phone check warning:", phoneCheckError.message);
+            setAuthError("Network issue. Please check your connection and try again.");
+            return;
         }
 
         if (existingPhone) {
@@ -96,8 +98,7 @@ export const Signup = () => {
 
         if (signUpError) throw signUpError;
 
-        // ✅ 3. Fallback: Agar trigger fail hua to manually upsert karein
-        // (ON CONFLICT DO NOTHING — agar trigger ne bana diya hai to skip ho jayega)
+        // ✅ 3. Fallback (agar trigger ne nahi banaya to manually)
         if (authData?.user?.id) {
             try {
                 const { error: profileError } = await supabase
@@ -115,16 +116,14 @@ export const Signup = () => {
                     );
 
                 if (profileError) {
-                    // ❌ Error throw nahi karenge — bas log karenge
                     console.warn("Profile upsert warning:", profileError.message);
                 }
             } catch (profileErr) {
-                // ❌ Crash nahi karenge
                 console.warn("Profile fallback warning:", profileErr?.message);
             }
         }
 
-        // ✅ 4. Sign out (taake user login page pe jaye)
+        // ✅ 4. Sign out
         await supabase.auth.signOut();
 
         setAuthSuccess("Account created successfully! Redirecting to login page...");
