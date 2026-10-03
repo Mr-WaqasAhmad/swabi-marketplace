@@ -161,81 +161,81 @@ export const Home = () => {
             />
           </div>
         </section>
-        
-{/* ✅ Total Products Stats Bar */}
-<section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
-  <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
-    <div className='flex items-center gap-2'>
-      <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
-      <span className='text-xs sm:text-sm font-semibold text-gray-700'>
-        Total <span className='text-[#0a4d3c] font-bold'>{filteredPosts.length}</span> {filteredPosts.length === 1 ? 'Product' : 'Products'} Available
-      </span>
-    </div>
 
-    {filteredPosts.filter(p => isNewProduct(p.created_at)).length > 0 && (
-      <div className='flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
-        <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
-        <span className='text-[10px] sm:text-xs font-bold text-emerald-700'>
-          {filteredPosts.filter(p => isNewProduct(p.created_at)).length} NEW
-        </span>
-      </div>
-    )}
-  </div>
-</section>
-        
-        {/* Sort Bar */}
-<section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
-  <div className='flex items-center justify-end gap-2'>
-    <div className='relative'>
-      <button
-        type="button"
-        onClick={() => setShowSortMenu(!showSortMenu)}
-        className='flex items-center gap-1.5 bg-white border border-gray-300 hover:border-[#0a4d3c] text-gray-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-sm transition-all cursor-pointer'
-      >
-        <ArrowUpDown className='w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0a4d3c]' />
-        <span className='hidden sm:inline'>{currentSortLabel}</span>
-        <span className='sm:hidden'>Sort</span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-gray-500 transition-transform ${
-            showSortMenu ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
+        {/* Total Products Stats Bar */}
+        <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+          <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
+            <div className='flex items-center gap-2'>
+              <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
+              <span className='text-xs sm:text-sm font-semibold text-gray-700'>
+                Total <span className='text-[#0a4d3c] font-bold'>{filteredPosts.length}</span> {filteredPosts.length === 1 ? 'Product' : 'Products'} Available
+              </span>
+            </div>
 
-      {showSortMenu && (
-        <>
-          <div
-            className='fixed inset-0 z-40'
-            onClick={() => setShowSortMenu(false)}
-          />
-
-          <div className='absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden'>
-            {sortOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  setSortBy(option.value);
-                  setShowSortMenu(false);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors cursor-pointer flex items-center justify-between ${
-                  sortBy === option.value
-                    ? 'bg-[#effffb] text-[#0a4d3c] font-bold'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span>{option.label}</span>
-                {sortBy === option.value && (
-                  <span className='w-2 h-2 rounded-full bg-[#0a4d3c]'></span>
-                )}
-              </button>
-            ))}
+            {filteredPosts.filter(p => isNewProduct(p.created_at)).length > 0 && (
+              <div className='flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
+                <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
+                <span className='text-[10px] sm:text-xs font-bold text-emerald-700'>
+                  {filteredPosts.filter(p => isNewProduct(p.created_at)).length} NEW
+                </span>
+              </div>
+            )}
           </div>
-        </>
-      )}
-    </div>
-  </div>
-</section>
+        </section>
+
+        {/* Sort Bar */}
+        <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+          <div className='flex items-center justify-end gap-2'>
+            <div className='relative'>
+              <button
+                type="button"
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className='flex items-center gap-1.5 bg-white border border-gray-300 hover:border-[#0a4d3c] text-gray-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-sm transition-all cursor-pointer'
+              >
+                <ArrowUpDown className='w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0a4d3c]' />
+                <span className='hidden sm:inline'>{currentSortLabel}</span>
+                <span className='sm:hidden'>Sort</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-gray-500 transition-transform ${
+                    showSortMenu ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {showSortMenu && (
+                <>
+                  <div
+                    className='fixed inset-0 z-40'
+                    onClick={() => setShowSortMenu(false)}
+                  />
+
+                  <div className='absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden'>
+                    {sortOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(option.value);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors cursor-pointer flex items-center justify-between ${
+                          sortBy === option.value
+                            ? 'bg-[#effffb] text-[#0a4d3c] font-bold'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span>{option.label}</span>
+                        {sortBy === option.value && (
+                          <span className='w-2 h-2 rounded-full bg-[#0a4d3c]'></span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* Products Grid */}
         <section
@@ -276,11 +276,17 @@ export const Home = () => {
                         <div></div>
                       )}
 
-                      {/* ✅ Views Count Badge */}
+                      {/* Views Count Badge */}
                       <div className='bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 ml-auto'>
                         <Eye className='w-3 h-3' aria-hidden="true" />
                         {product.views || 0}
                       </div>
+                    </div>
+
+                    {/* ✅ Watermark */}
+                    <div className='absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
+                      <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
+                      Swabi Market
                     </div>
                   </div>
 
@@ -310,13 +316,13 @@ export const Home = () => {
                       </div>
 
                       <Link
-  to={`/singleproductdetails/${product.id}?ref=home`}
-  aria-label={`View details of ${product.title}`}
-  className='w-full flex items-center justify-center gap-1 border border-[#0a4d3c] text-[#0a4d3c] hover:bg-[#0a4d3c] hover:text-white font-semibold text-[11px] sm:text-xs py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors duration-200 cursor-pointer'
->
-  <Eye className='w-3 h-3 sm:w-3.5 sm:h-3.5' aria-hidden="true" />
-  <span>View Details</span>
-</Link>
+                        to={`/singleproductdetails/${product.id}?ref=home`}
+                        aria-label={`View details of ${product.title}`}
+                        className='w-full flex items-center justify-center gap-1 border border-[#0a4d3c] text-[#0a4d3c] hover:bg-[#0a4d3c] hover:text-white font-semibold text-[11px] sm:text-xs py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors duration-200 cursor-pointer'
+                      >
+                        <Eye className='w-3 h-3 sm:w-3.5 sm:h-3.5' aria-hidden="true" />
+                        <span>View Details</span>
+                      </Link>
                     </div>
                   </div>
                 </article>
