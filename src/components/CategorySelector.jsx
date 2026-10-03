@@ -51,7 +51,7 @@ export const CategorySelector = ({ value, onChange, categoryCounts = {} }) => {
       >
         {/* ✅ All Categories with total count */}
         <option value="">
-          All Categories {totalCount > 0 && `(${totalCount})`}
+          All Categories
         </option>
 
         {categories.map((cat, index) => {
