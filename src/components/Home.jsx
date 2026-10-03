@@ -55,6 +55,33 @@ export const Home = () => {
     );
   };
 
+  // ✅ Real-time Product Age calculate karein
+  const getProductAge = (createdAt) => {
+    if (!createdAt) return '';
+
+    const productDate = new Date(createdAt);
+    const now = new Date();
+    const diffInMs = now - productDate;
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    const diffInMonths = Math.floor(diffInDays / 30);
+    const diffInYears = Math.floor(diffInDays / 365);
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays}d ago`;
+    if (diffInWeeks === 1) return '1 week ago';
+    if (diffInWeeks < 4) return `${diffInWeeks} weeks ago`;
+    if (diffInMonths === 1) return '1 month ago';
+    if (diffInMonths < 12) return `${diffInMonths} months ago`;
+    if (diffInYears === 1) return '1 year ago';
+    return `${diffInYears} years ago`;
+  };
+
   // ✅ Filter + Sort Logic
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
@@ -283,7 +310,7 @@ export const Home = () => {
                       </div>
                     </div>
 
-                    {/* ✅ Watermark */}
+                    {/* Watermark */}
                     <div className='absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
                       <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
                       Swabi Market
@@ -308,10 +335,16 @@ export const Home = () => {
                     </div>
 
                     <div className='flex flex-col gap-1.5 pt-1.5 border-t border-gray-100 mt-1'>
-                      <div className='flex items-center gap-1 text-gray-500 text-[10px] sm:text-xs truncate'>
-                        <MapPin className='w-3 h-3 text-red-500 shrink-0' aria-hidden="true" />
-                        <span className='truncate font-medium text-gray-600'>
-                          {product.location || "Swabi, KP"}
+                      {/* ✅ Location + Product Age */}
+                      <div className='flex items-center justify-between gap-1 text-gray-500 text-[10px] sm:text-xs'>
+                        <div className='flex items-center gap-1 truncate'>
+                          <MapPin className='w-3 h-3 text-red-500 shrink-0' aria-hidden="true" />
+                          <span className='truncate font-medium text-gray-600'>
+                            {product.location || "Swabi, KP"}
+                          </span>
+                        </div>
+                        <span className='text-gray-400 font-medium shrink-0'>
+                          {getProductAge(product.created_at)}
                         </span>
                       </div>
 
