@@ -8,7 +8,6 @@ const reportReasons = [
   { value: 'illegal', label: 'Ghair-Qanooni Product' },
   { value: 'spam', label: 'Spam ya Scam' },
   { value: 'wrong_category', label: 'Ghalat Category' },
-  { value: 'sold_out', label: 'Product Pehle Se Bik Gaya' },
   { value: 'other', label: 'Koi Aur Wajah' },
 ];
 
@@ -96,7 +95,7 @@ ${formData.details || 'Koi additional details nahi di gayi.'}
 
 Baraye meherbani is ad ko check karein aur zaroori action lein.
 
-Shukriya! 🙏`;
+Shukriya!`;
 
       const encodedMessage = encodeURIComponent(reportMessage);
       const whatsappUrl = `https://wa.me/${ownerNumber}?text=${encodedMessage}`;
