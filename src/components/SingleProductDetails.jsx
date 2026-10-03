@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, Eye, ShoppingCart, Flag } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
@@ -20,18 +20,6 @@ const getData = async (id) => {
 
   if (postError) throw new Error(postError.message);
   if (!post) return null;
-
-  // ✅ 2. View count SIRF tab barhayein jab Home page se aaya ho
-  const refParam = new URLSearchParams(window.location.search).get('ref');
-  if (refParam === 'home') {
-    supabase
-      .from('posts')
-      .update({ views: (post.views || 0) + 1 })
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) console.warn("View increment error:", error.message);
-      });
-  }
 
   // 3. Seller details fetch karein
   let sellerDetails = null;
@@ -81,16 +69,40 @@ export const SingleProductDetails = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
-  // ✅ FIX: queryKey mein Date.now() — taake har dafa fresh fetch ho
   const { data: product, isLoading, isError } = useQuery({
-  queryKey: ['product', param.id],
-  queryFn: () => getData(param.id),
-  enabled: !!param.id,
-  staleTime: 0,
-  gcTime: 0,
-  refetchOnMount: true,
-  refetchOnWindowFocus: true,
-});
+    queryKey: ['product', param.id],
+    queryFn: () => getData(param.id),
+    enabled: !!param.id,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
+  // ✅ View count increment — useEffect se (HAMESHA chalega)
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const refParam = new URLSearchParams(window.location.search).get('ref');
+
+    if (refParam === 'home') {
+      console.log('✅ View incrementing for:', product.title);
+
+      supabase
+        .from('posts')
+        .update({ views: (product.views || 0) + 1 })
+        .eq('id', product.id)
+        .then(({ error }) => {
+          if (error) {
+            console.warn("❌ View increment error:", error.message);
+          } else {
+            console.log('✅ View incremented successfully');
+          }
+        });
+    } else {
+      console.log('⚠️ Ref is not "home":', refParam);
+    }
+  }, [product?.id]);
 
   if (isLoading) return <ShimmerEffectForSingleItem />;
 
