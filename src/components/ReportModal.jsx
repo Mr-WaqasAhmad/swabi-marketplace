@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Flag, AlertTriangle, Loader2, Check } from 'lucide-react';
+import { X, Flag, AlertTriangle, Loader2, Check, Mail, MessageCircle } from 'lucide-react';
 
 const reportReasons = [
   { value: 'fake', label: 'Fake ya Jhooti Ad' },
@@ -14,6 +14,7 @@ const reportReasons = [
 export const ReportModal = ({ isOpen, onClose, product, sellerName, sellerPhone, sellerLocation }) => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sentVia, setSentVia] = useState('');
 
   const [formData, setFormData] = useState({
     reason: '',
@@ -25,6 +26,7 @@ export const ReportModal = ({ isOpen, onClose, product, sellerName, sellerPhone,
     if (isOpen) {
       setFormData({ reason: '', details: '' });
       setSubmitted(false);
+      setSentVia('');
     }
   }, [isOpen]);
 
@@ -54,16 +56,9 @@ export const ReportModal = ({ isOpen, onClose, product, sellerName, sellerPhone,
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-const handleSubmit = (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-        // ✅ Admin ka email
-        const adminEmail = 'wa9580670@gmail.com';
-
-        // ✅ Report message banayein
-        const reportMessage = `Assalam o Alaikum!
+  // ✅ Report message banayein (dono ke liye same)
+  const buildReportMessage = () => {
+    return `Assalam o Alaikum!
 
 🚩 AD REPORT
 
@@ -96,33 +91,66 @@ ${formData.details || 'Koi additional details nahi di gayi.'}
 Baraye meherbani is ad ko check karein aur zaroori action lein.
 
 Shukriya!`;
+  };
 
-        // ✅ Email subject
-        const subject = `🚩 Ad Report - ${product?.title || 'Product'}`;
+  // ✅ Email par bhejein
+  const handleSendViaEmail = () => {
+    if (!formData.reason) return;
+    setLoading(true);
 
-        // ✅ Mailto link banayein
-        const mailtoUrl = `mailto:${adminEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportMessage)}`;
+    try {
+      const adminEmail = 'wa9580670@gmail.com';
+      const subject = `🚩 Ad Report - ${product?.title || 'Product'}`;
+      const body = buildReportMessage();
 
-        // ✅ Email client open karein
-        window.location.href = mailtoUrl;
+      const mailtoUrl = `mailto:${adminEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-        setLoading(false);
-        setSubmitted(true);
+      window.location.href = mailtoUrl;
 
-        // 2 second baad close
-        setTimeout(() => {
-            onClose();
-            setSubmitted(false);
-        }, 2000);
+      setLoading(false);
+      setSentVia('email');
+      setSubmitted(true);
+
+      setTimeout(() => {
+        onClose();
+        setSubmitted(false);
+      }, 2500);
     } catch (err) {
-        console.error('Report error:', err);
-        setLoading(false);
+      console.error('Email report error:', err);
+      setLoading(false);
     }
-};
+  };
+
+  // ✅ WhatsApp par bhejein
+  const handleSendViaWhatsapp = () => {
+    if (!formData.reason) return;
+    setLoading(true);
+
+    try {
+      const ownerNumber = '923100094241';
+      const message = buildReportMessage();
+
+      const whatsappUrl = `https://wa.me/${ownerNumber}?text=${encodeURIComponent(message)}`;
+
+      window.open(whatsappUrl, '_blank');
+
+      setLoading(false);
+      setSentVia('whatsapp');
+      setSubmitted(true);
+
+      setTimeout(() => {
+        onClose();
+        setSubmitted(false);
+      }, 2500);
+    } catch (err) {
+      console.error('WhatsApp report error:', err);
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
-  // Success Screen
+  // ✅ Success Screen
   if (submitted) {
     return (
       <div className='fixed inset-0 z-50 flex items-center justify-center p-4'>
@@ -132,9 +160,13 @@ Shukriya!`;
           <div className='w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4'>
             <Check className='w-8 h-8 text-emerald-600' strokeWidth={3} />
           </div>
-          <h2 className='text-xl font-bold text-gray-800 mb-2'>Report Send Ho Gayi!</h2>
+          <h2 className='text-xl font-bold text-gray-800 mb-2'>
+            {sentVia === 'email' ? 'Email Ready!' : 'WhatsApp Open Ho Gaya!'}
+          </h2>
           <p className='text-sm text-gray-600'>
-            Aapki report hum tak pohanch gayi hai. Hum jald check karenge.
+            {sentVia === 'email'
+              ? 'Aapke email client mein report bhejne ke liye ready hai. Send dabayein.'
+              : 'Aapke WhatsApp mein report ka message ready hai. Send dabayein.'}
           </p>
         </div>
       </div>
@@ -192,7 +224,7 @@ Shukriya!`;
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className='p-5 flex flex-col gap-4'>
+        <form onSubmit={(e) => e.preventDefault()} className='p-5 flex flex-col gap-4'>
           {/* Warning */}
           <div className='bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2'>
             <AlertTriangle className='w-4 h-4 text-amber-600 shrink-0 mt-0.5' />
@@ -232,40 +264,65 @@ Shukriya!`;
               name='details'
               value={formData.details}
               onChange={handleChange}
-              rows='4'
+              rows='3'
               placeholder='Baraye meherbani tafseel se batayein...'
               className='w-full border border-gray-300 focus:border-red-500 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-500/20 resize-none transition-all'
             ></textarea>
           </div>
 
-          {/* Buttons */}
-          <div className='flex gap-3 mt-2'>
+          {/* ✅ Send Options */}
+          <div className='flex flex-col gap-2.5 mt-1'>
+            <p className='text-[11px] font-bold text-gray-500 text-center uppercase tracking-wider'>
+              Report bhejne ka tarika chunein
+            </p>
+
+            {/* Email Button */}
             <button
               type='button'
-              onClick={onClose}
-              className='flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all cursor-pointer'
-            >
-              Cancel
-            </button>
-            <button
-              type='submit'
+              onClick={handleSendViaEmail}
               disabled={loading || !formData.reason}
-              className='flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+              className='w-full py-3 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
             >
-              {loading ? (
+              {loading && sentVia === 'email' ? (
                 <Loader2 className='w-4 h-4 animate-spin' />
               ) : (
                 <>
-                  <Flag className='w-4 h-4' />
-                  Send Report
+                  <Mail className='w-4 h-4' />
+                  Send via Email
                 </>
               )}
+            </button>
+
+            {/* WhatsApp Button */}
+            <button
+              type='button'
+              onClick={handleSendViaWhatsapp}
+              disabled={loading || !formData.reason}
+              className='w-full py-3 bg-[#25D366] hover:bg-[#1FA855] text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              {loading && sentVia === 'whatsapp' ? (
+                <Loader2 className='w-4 h-4 animate-spin' />
+              ) : (
+                <>
+                  <MessageCircle className='w-4 h-4' />
+                  Send via WhatsApp
+                </>
+              )}
+            </button>
+
+            {/* Cancel Button */}
+            <button
+              type='button'
+              onClick={onClose}
+              className='w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-xl transition-all cursor-pointer'
+            >
+              Cancel
             </button>
           </div>
 
           {/* Note */}
-          <p className='text-[10px] text-center text-gray-400 font-medium'>
-            Aapki report admin ko WhatsApp par jayegi
+          <p className='text-[10px] text-center text-gray-400 font-medium mt-1'>
+            Dono options har device pe kaam karte hain — jo aapke liye aasan ho wahi chunein
           </p>
         </form>
       </div>
