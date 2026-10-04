@@ -54,41 +54,41 @@ export const ReportModal = ({ isOpen, onClose, product, sellerName, sellerPhone,
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // ✅ WhatsApp number clean karein (owner ka)
-      const ownerNumber = '923100094241';
+        // ✅ Admin ka email
+        const adminEmail = 'wa9580670@gmail.com';
 
-      // ✅ Report message banayein
-      const reportMessage = `Assalam o Alaikum!
+        // ✅ Report message banayein
+        const reportMessage = `Assalam o Alaikum!
 
-🚩 *AD REPORT*
-
-━━━━━━━━━━━━━━━━━━━━
-📦 *PRODUCT DETAILS*
-━━━━━━━━━━━━━━━━━━━━
-*Title:* ${product?.title}
-*Price:* PKR ${Number(product?.price)?.toLocaleString()}
-*Category:* ${product?.category || 'N/A'}
-*Location:* ${product?.location || 'Swabi'}
-*Product ID:* ${product?.id}
+🚩 AD REPORT
 
 ━━━━━━━━━━━━━━━━━━━━
-👤 *SELLER DETAILS*
+📦 PRODUCT DETAILS
 ━━━━━━━━━━━━━━━━━━━━
-*Name:* ${sellerName}
-*Phone:* ${sellerPhone || 'N/A'}
-*Location:* ${sellerLocation || 'N/A'}
+Title: ${product?.title}
+Price: PKR ${Number(product?.price)?.toLocaleString()}
+Category: ${product?.category || 'N/A'}
+Location: ${product?.location || 'Swabi'}
+Product ID: ${product?.id}
 
 ━━━━━━━━━━━━━━━━━━━━
-⚠️ *REPORT REASON*
+👤 SELLER DETAILS
 ━━━━━━━━━━━━━━━━━━━━
-*Main Reason:* ${reportReasons.find(r => r.value === formData.reason)?.label || formData.reason}
+Name: ${sellerName}
+Phone: ${sellerPhone || 'N/A'}
+Location: ${sellerLocation || 'N/A'}
 
-📝 *Additional Details:*
+━━━━━━━━━━━━━━━━━━━━
+⚠️ REPORT REASON
+━━━━━━━━━━━━━━━━━━━━
+Main Reason: ${reportReasons.find(r => r.value === formData.reason)?.label || formData.reason}
+
+📝 Additional Details:
 ${formData.details || 'Koi additional details nahi di gayi.'}
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -97,25 +97,28 @@ Baraye meherbani is ad ko check karein aur zaroori action lein.
 
 Shukriya!`;
 
-      const encodedMessage = encodeURIComponent(reportMessage);
-      const whatsappUrl = `https://wa.me/${ownerNumber}?text=${encodedMessage}`;
+        // ✅ Email subject
+        const subject = `🚩 Ad Report - ${product?.title || 'Product'}`;
 
-      // ✅ WhatsApp open karein
-      window.open(whatsappUrl, '_blank');
+        // ✅ Mailto link banayein
+        const mailtoUrl = `mailto:${adminEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportMessage)}`;
 
-      setLoading(false);
-      setSubmitted(true);
+        // ✅ Email client open karein
+        window.location.href = mailtoUrl;
 
-      // 2 second baad close
-      setTimeout(() => {
-        onClose();
-        setSubmitted(false);
-      }, 2000);
+        setLoading(false);
+        setSubmitted(true);
+
+        // 2 second baad close
+        setTimeout(() => {
+            onClose();
+            setSubmitted(false);
+        }, 2000);
     } catch (err) {
-      console.error('Report error:', err);
-      setLoading(false);
+        console.error('Report error:', err);
+        setLoading(false);
     }
-  };
+};
 
   if (!isOpen) return null;
 
