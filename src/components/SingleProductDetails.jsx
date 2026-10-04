@@ -7,6 +7,7 @@ import { supabase } from './supabaseClient';
 import { OrderModal } from './OrderModal';
 import { ReportModal } from './ReportModal';
 import { SEO } from './SEO';
+import { CommentsSection } from './CommentsSection';
 
 const getData = async (id) => {
   if (!id) return null;
@@ -446,9 +447,14 @@ Shukriya! 🙏`;
             </aside>
           </div>
 
-          {/* SIMILAR PRODUCTS SECTION */}
-          {similarProducts.length > 0 && (
-            <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
+          {/* ✅ COMMENTS SECTION */}
+<div className='mt-12'>
+  <CommentsSection postId={param.id} />
+</div>
+
+{/* SIMILAR PRODUCTS SECTION */}
+{similarProducts.length > 0 && (
+  <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
               <div className='flex items-center justify-between mb-5'>
                 <div>
                   <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
