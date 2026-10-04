@@ -1,21 +1,53 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, Search, ArrowUpDown, ChevronDown, Eye } from 'lucide-react';
+import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
 import { CategorySelector } from './CategorySelector';
 import { SEO } from './SEO';
 
+// ✅ Posts + Ratings fetch karein
 const fetchPostsFromSupabase = async () => {
-  const { data, error } = await supabase
+  // Step 1: Posts fetch karein
+  const { data: postsData, error: postsError } = await supabase
     .from('posts')
     .select('*')
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
-  if (error) throw new Error(error.message);
-  return data;
+  if (postsError) throw new Error(postsError.message);
+  if (!postsData || postsData.length === 0) return [];
+
+  // Step 2: Saari ratings fetch karein
+  const postIds = postsData.map((p) => p.id);
+
+  const { data: ratingsData, error: ratingsError } = await supabase
+    .from('ratings')
+    .select('post_id, rating')
+    .in('post_id', postIds);
+
+  if (ratingsError) console.warn('Ratings fetch warning:', ratingsError.message);
+
+  // Step 3: Post-wise average calculate karein
+  const ratingsMap = {};
+  (ratingsData || []).forEach((r) => {
+    if (!ratingsMap[r.post_id]) {
+      ratingsMap[r.post_id] = { total: 0, count: 0 };
+    }
+    ratingsMap[r.post_id].total += r.rating;
+    ratingsMap[r.post_id].count += 1;
+  });
+
+  // Step 4: Posts mein average add karein
+  return postsData.map((post) => {
+    const stats = ratingsMap[post.id];
+    return {
+      ...post,
+      avgRating: stats ? stats.total / stats.count : 0,
+      totalRatings: stats ? stats.count : 0,
+    };
+  });
 };
 
 export const Home = () => {
@@ -103,15 +135,17 @@ export const Home = () => {
       case 'oldest':
         filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         break;
+      case 'popular':
+        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
+      case 'top-rated':
+        filtered.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
+        break;
       case 'price-low':
         filtered.sort((a, b) => Number(a.price) - Number(b.price));
         break;
       case 'price-high':
         filtered.sort((a, b) => Number(b.price) - Number(a.price));
-        break;
-      case 'popular':
-        // ✅ Most Viewed — zyada views wale pehle
-        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
         break;
       default:
         break;
@@ -120,11 +154,12 @@ export const Home = () => {
     return filtered;
   }, [posts, searchQuery, selectedCategory, sortBy]);
 
-  // ✅ Sort Options — "Most Viewed" add kiya
+  // ✅ Sort Options — Top Rated add kiya
   const sortOptions = [
     { value: 'newest', label: 'Newest First' },
     { value: 'oldest', label: 'Oldest First' },
     { value: 'popular', label: 'Most Viewed' },
+    { value: 'top-rated', label: 'Top Rated' },
     { value: 'price-low', label: 'Price: Low to High' },
     { value: 'price-high', label: 'Price: High to Low' },
   ];
@@ -329,6 +364,19 @@ export const Home = () => {
                       >
                         PKR {Number(product.price)?.toLocaleString()}
                       </p>
+
+                      {/* ✅ Average Rating */}
+                      {product.totalRatings > 0 && (
+                        <div className='flex items-center gap-1 mt-0.5'>
+                          <Star className='w-3 h-3 fill-[#D4AF37] text-[#D4AF37] shrink-0' aria-hidden="true" />
+                          <span className='text-[10px] sm:text-xs font-bold text-gray-700'>
+                            {product.avgRating.toFixed(1)}
+                          </span>
+                          <span className='text-[9px] sm:text-[10px] text-gray-400 font-medium'>
+                            ({product.totalRatings})
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className='flex flex-col gap-1.5 pt-1.5 border-t border-gray-100 mt-1'>
