@@ -109,6 +109,10 @@ export const Home = () => {
       case 'price-high':
         filtered.sort((a, b) => Number(b.price) - Number(a.price));
         break;
+      case 'popular':
+        // ✅ Most Viewed — zyada views wale pehle
+        filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
       default:
         break;
     }
@@ -116,9 +120,11 @@ export const Home = () => {
     return filtered;
   }, [posts, searchQuery, selectedCategory, sortBy]);
 
+  // ✅ Sort Options — "Most Viewed" add kiya
   const sortOptions = [
     { value: 'newest', label: 'Newest First' },
     { value: 'oldest', label: 'Oldest First' },
+    { value: 'popular', label: 'Most Viewed' },
     { value: 'price-low', label: 'Price: Low to High' },
     { value: 'price-high', label: 'Price: High to Low' },
   ];
