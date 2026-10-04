@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, ShoppingCart, Flag } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, ShoppingCart, Flag, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
@@ -79,14 +79,13 @@ export const SingleProductDetails = () => {
   });
 
   // ✅ Views Increment (har page visit pe +1)
-useEffect(() => {
-  if (param.id) {
-    supabase.rpc('increment_view', { post_id: param.id }).then(({ error }) => {
-      if (error) console.warn('View increment warning:', error.message);
-    });
-  }
-}, [param.id]);
-
+  useEffect(() => {
+    if (param.id) {
+      supabase.rpc('increment_view', { post_id: param.id }).then(({ error }) => {
+        if (error) console.warn('View increment warning:', error.message);
+      });
+    }
+  }, [param.id]);
 
   if (isLoading) return <ShimmerEffectForSingleItem />;
 
@@ -321,12 +320,12 @@ Shukriya! 🙏`;
                   </address>
 
                   {/* ✅ Views Counter */}
-<div className='flex items-center gap-2 text-xs sm:text-sm text-gray-500 mt-2'>
-  <Eye className='w-4 h-4 text-[#0a4d3c] shrink-0' aria-hidden="true" />
-  <span className='font-medium'>
-    {product?.views || 0} {product?.views === 1 ? 'view' : 'views'}
-  </span>
-</div>
+                  <div className='flex items-center gap-2 text-xs sm:text-sm text-gray-500 mt-2'>
+                    <Eye className='w-4 h-4 text-[#0a4d3c] shrink-0' aria-hidden="true" />
+                    <span className='font-medium'>
+                      {product?.views || 0} {product?.views === 1 ? 'view' : 'views'}
+                    </span>
+                  </div>
 
                   <div className='mt-4 pt-3 border-t border-gray-50 flex flex-wrap items-center gap-3'>
                     <div className='flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/60 text-xs font-bold w-fit'>
