@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, ShoppingCart, Flag } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
@@ -77,6 +77,16 @@ export const SingleProductDetails = () => {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+
+  // ✅ Views Increment (har page visit pe +1)
+useEffect(() => {
+  if (param.id) {
+    supabase.rpc('increment_view', { post_id: param.id }).then(({ error }) => {
+      if (error) console.warn('View increment warning:', error.message);
+    });
+  }
+}, [param.id]);
+
 
   if (isLoading) return <ShimmerEffectForSingleItem />;
 
