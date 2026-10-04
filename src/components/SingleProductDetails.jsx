@@ -320,6 +320,14 @@ Shukriya! 🙏`;
                     <span className='font-medium'>{product?.location}</span>
                   </address>
 
+                  {/* ✅ Views Counter */}
+<div className='flex items-center gap-2 text-xs sm:text-sm text-gray-500 mt-2'>
+  <Eye className='w-4 h-4 text-[#0a4d3c] shrink-0' aria-hidden="true" />
+  <span className='font-medium'>
+    {product?.views || 0} {product?.views === 1 ? 'view' : 'views'}
+  </span>
+</div>
+
                   <div className='mt-4 pt-3 border-t border-gray-50 flex flex-wrap items-center gap-3'>
                     <div className='flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/60 text-xs font-bold w-fit'>
                       <Wrench className='w-3.5 h-3.5 text-[#D4AF37]' aria-hidden="true" />
