@@ -245,15 +245,20 @@ export const CommentsSection = ({ postId }) => {
                           {getTimeAgo(comment.created_at)}
                         </span>
                         {isOwner && (
-                          <button
-                            onClick={() => handleDelete(comment.id)}
-                            disabled={deleteCommentMutation.isPending}
-                            className='text-red-500 hover:text-red-700 transition-colors cursor-pointer opacity-0 group-hover:opacity-100'
-                            aria-label='Delete comment'
-                          >
-                            <Trash2 className='w-3.5 h-3.5' />
-                          </button>
-                        )}
+  <button
+    onClick={() => handleDelete(comment.id)}
+    disabled={deleteCommentMutation.isPending}
+    className='text-red-400 hover:text-red-600 transition-all cursor-pointer p-1 hover:bg-red-50 rounded-lg disabled:opacity-50'
+    aria-label='Delete comment'
+    title='Delete comment'
+  >
+    {deleteCommentMutation.isPending ? (
+      <Loader2 className='w-3.5 h-3.5 animate-spin' />
+    ) : (
+      <Trash2 className='w-3.5 h-3.5' />
+    )}
+  </button>
+)}
                       </div>
                     </div>
                     <p className='text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words'>
