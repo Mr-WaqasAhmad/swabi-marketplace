@@ -287,7 +287,7 @@ export const Home = () => {
                       className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
                     />
 
-                    {/* ✅ NEW Badge */}
+                    {/* ✅ NEW Badge - Top Left */}
                     {isNewProduct(product.created_at) && (
                       <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 z-10'>
                         <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
@@ -295,7 +295,13 @@ export const Home = () => {
                       </div>
                     )}
 
-                    {/* Watermark */}
+                    {/* ✅ Views Badge - Top Right */}
+                    <div className='absolute top-2 right-2 bg-white/95 backdrop-blur-sm text-gray-700 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold shadow-md flex items-center gap-1 z-10 border border-gray-200'>
+                      <Eye className='w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0a4d3c]' aria-hidden="true" />
+                      <span>{product.views || 0}</span>
+                    </div>
+
+                    {/* Watermark - Bottom Right */}
                     <div className='absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
                       <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
                       Swabi Market
