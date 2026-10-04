@@ -4,24 +4,40 @@ import { MessageCircle, Send, Trash2, Loader2, User2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
-// ✅ Comments fetch function
+// ✅ Comments fetch function — 2 simple queries, no JOIN
 const fetchComments = async (postId) => {
-  const { data, error } = await supabase
+  // Step 1: Comments fetch karein
+  const { data: commentsData, error: commentsError } = await supabase
     .from('comments')
-    .select(`
-      id,
-      content,
-      created_at,
-      user_id,
-      profiles:user_id (
-        full_name
-      )
-    `)
+    .select('id, content, created_at, user_id, post_id')
     .eq('post_id', postId)
     .order('created_at', { ascending: false });
 
-  if (error) throw new Error(error.message);
-  return data || [];
+  if (commentsError) throw new Error(commentsError.message);
+  if (!commentsData || commentsData.length === 0) return [];
+
+  // Step 2: Unique user IDs nikaalein
+  const userIds = [...new Set(commentsData.map((c) => c.user_id))];
+
+  // Step 3: Profiles fetch karein
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .in('id', userIds);
+
+  if (profilesError) console.warn('Profiles fetch warning:', profilesError.message);
+
+  // Step 4: Map banayein
+  const profilesMap = {};
+  (profilesData || []).forEach((p) => {
+    profilesMap[p.id] = p;
+  });
+
+  // Step 5: Merge karein
+  return commentsData.map((comment) => ({
+    ...comment,
+    profiles: profilesMap[comment.user_id] || { full_name: 'User' },
+  }));
 };
 
 // ✅ Time formatting
@@ -144,9 +160,9 @@ export const CommentsSection = ({ postId }) => {
         <form onSubmit={handleSubmit} className='mb-6'>
           <div className='flex gap-2 sm:gap-3'>
             <div className='w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold shrink-0'>
-              {user?.full_name?.trim()?.[0]?.toUpperCase() || 
-               user?.user_metadata?.full_name?.trim()?.[0]?.toUpperCase() || 
-               <User2 className='w-4 h-4' />}
+              {user?.full_name?.trim()?.[0]?.toUpperCase() ||
+                user?.user_metadata?.full_name?.trim()?.[0]?.toUpperCase() ||
+                <User2 className='w-4 h-4' />}
             </div>
             <div className='flex-1'>
               <textarea
