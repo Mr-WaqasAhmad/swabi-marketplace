@@ -7,7 +7,7 @@ import { useUser } from '../contexts/UserDetailsContext';
 
 // ✅ Conversation + messages fetch — CORRECT LOGIC
 const fetchConversationData = async (postId, userId) => {
-  // 1. Post fetch karein (seller pata chalega)
+  // 1. Post fetch
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select('id, title, price, image_url, user_id')
@@ -17,53 +17,95 @@ const fetchConversationData = async (postId, userId) => {
   if (postError) throw new Error(postError.message);
   if (!post) throw new Error('Post not found');
 
-  const sellerId = post.user_id;
+  const postOwnerId = post.user_id;
 
-  // ❌ Self chat check
-  if (sellerId === userId) {
-    return { post, seller: null, conversation: null, messages: [], isSelf: true };
-  }
+  // ✅ 2. CHECK: User buyer hai ya seller?
+  // Agar user = post owner (seller), to uska koi conversation iss post pe dhoondein
+  // Agar user ≠ post owner (buyer), to normal conversation banao
 
-  // 2. Seller profile fetch
-  const { data: seller } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .eq('id', sellerId)
-    .maybeSingle();
+  let conversation = null;
+  let otherUser = null;
+  let isUserSeller = false;
 
-  // 3. Conversation dhoondein — SIRF ek honi chahiye
-  //    Buyer = current user, Seller = post owner
-  const { data: existing, error: findError } = await supabase
-    .from('conversations')
-    .select('*')
-    .eq('post_id', postId)
-    .eq('buyer_id', userId)
-    .eq('seller_id', sellerId)
-    .maybeSingle();
+  if (userId === postOwnerId) {
+    // ✅ User SELLER hai — apni post pe click kiya
+    // Sabse recent conversation dhoondein iss post pe (jis mein seller = user)
+    isUserSeller = true;
 
-  if (findError && findError.code !== 'PGRST116') {
-    throw new Error(findError.message);
-  }
-
-  let conversation = existing;
-
-  // 4. Agar nahi hai to naya banao
-  if (!conversation) {
-    const { data: newConv, error: createError } = await supabase
+    const { data: convs, error: convError } = await supabase
       .from('conversations')
-      .insert([{
-        post_id: postId,
-        buyer_id: userId,
-        seller_id: sellerId,
-      }])
-      .select()
-      .single();
+      .select('*')
+      .eq('post_id', postId)
+      .eq('seller_id', userId)
+      .order('last_message_at', { ascending: false })
+      .limit(1);
 
-    if (createError) throw new Error(createError.message);
-    conversation = newConv;
+    if (convError) throw new Error(convError.message);
+
+    if (!convs || convs.length === 0) {
+      // Koi conversation nahi — seller ko wait karna hoga
+      return {
+        post,
+        seller: null,
+        conversation: null,
+        messages: [],
+        isSelf: false,
+        isSellerNoConv: true,
+      };
+    }
+
+    conversation = convs[0];
+
+    // Buyer ka profile
+    const { data: buyer } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('id', conversation.buyer_id)
+      .maybeSingle();
+
+    otherUser = buyer;
+  } else {
+    // ✅ User BUYER hai — normal flow
+    const { data: existing, error: findError } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('post_id', postId)
+      .eq('buyer_id', userId)
+      .eq('seller_id', postOwnerId)
+      .maybeSingle();
+
+    if (findError && findError.code !== 'PGRST116') {
+      throw new Error(findError.message);
+    }
+
+    conversation = existing;
+
+    if (!conversation) {
+      const { data: newConv, error: createError } = await supabase
+        .from('conversations')
+        .insert([{
+          post_id: postId,
+          buyer_id: userId,
+          seller_id: postOwnerId,
+        }])
+        .select()
+        .single();
+
+      if (createError) throw new Error(createError.message);
+      conversation = newConv;
+    }
+
+    // Seller ka profile
+    const { data: seller } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('id', postOwnerId)
+      .maybeSingle();
+
+    otherUser = seller;
   }
 
-  // 5. Messages fetch — conversation se
+  // 3. Messages fetch
   const { data: messages, error: msgError } = await supabase
     .from('messages')
     .select('*')
@@ -74,10 +116,11 @@ const fetchConversationData = async (postId, userId) => {
 
   return {
     post,
-    seller,
+    seller: otherUser,
     conversation,
     messages: messages || [],
     isSelf: false,
+    isUserSeller,
   };
 };
 
