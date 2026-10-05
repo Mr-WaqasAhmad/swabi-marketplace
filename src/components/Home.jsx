@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star, ArrowUp, LayoutGrid } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,10 +7,11 @@ import { supabase } from './supabaseClient';
 import { categories, getCategoryIcon } from './CategorySelector';
 import { SEO } from './SEO';
 
+// ✅ Posts + Ratings fetch
 const fetchPostsFromSupabase = async () => {
   const { data: postsData, error: postsError } = await supabase
     .from('posts')
-    .select('*')
+    .select('id, title, price, category, location, image_url, views, created_at, status, user_id')
     .eq('status', 'active')
     .order('created_at', { ascending: false });
 
@@ -45,36 +46,98 @@ const fetchPostsFromSupabase = async () => {
   });
 };
 
+// ✅ Time ago helper
+const getProductAge = (createdAt) => {
+  if (!createdAt) return '';
+
+  const productDate = new Date(createdAt);
+  const now = new Date();
+  const diffInMs = now - productDate;
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  const diffInWeeks = Math.floor(diffInDays / 7);
+  const diffInMonths = Math.floor(diffInDays / 30);
+  const diffInYears = Math.floor(diffInDays / 365);
+
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays < 7) return `${diffInDays}d ago`;
+  if (diffInWeeks === 1) return '1 week ago';
+  if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
+  if (diffInMonths === 1) return '1 month ago';
+  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
+  if (diffInYears === 1) return '1 year ago';
+  return `${diffInYears}y ago`;
+};
+
+// ✅ "New" badge helper
+const isNewProduct = (createdAt) => {
+  if (!createdAt) return false;
+  const productDate = new Date(createdAt);
+  const now = new Date();
+
+  return (
+    productDate.getDate() === now.getDate() &&
+    productDate.getMonth() === now.getMonth() &&
+    productDate.getFullYear() === now.getFullYear()
+  );
+};
+
 export const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
-  // ✅ Scroll listener
+  // ✅ Debounced search — typing smooth
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // ✅ Scroll listener — throttled
+  useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 400);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setShowBackToTop(window.scrollY > 400);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
+  // ✅ Query with longer stale time
   const { data: posts, isLoading, isError } = useQuery({
     queryKey: ['products'],
     queryFn: fetchPostsFromSupabase,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
-  // ✅ Category Counts
+  // ✅ Category counts memoized
   const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
@@ -85,7 +148,7 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ Categories sorted — pehle jinke ads hain, phir alphabetically
+  // ✅ Sorted categories
   const sortedCategories = useMemo(() => {
     const withAds = [];
     const withoutAds = [];
@@ -98,63 +161,29 @@ export const Home = () => {
       }
     });
 
-    // Ads wali categories — count ke hisaab se sort (zyada pehle)
     withAds.sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0));
 
     return [...withAds, ...withoutAds];
   }, [categoryCounts]);
 
-  // ✅ Visible categories — 10 by default, "Show All" pe saari
-  const visibleCategories = showAllCategories
-    ? sortedCategories
-    : sortedCategories.slice(0, 10);
+  const visibleCategories = useMemo(() => {
+    return showAllCategories ? sortedCategories : sortedCategories.slice(0, 10);
+  }, [showAllCategories, sortedCategories]);
 
-  const isNewProduct = (createdAt) => {
-    if (!createdAt) return false;
-    const productDate = new Date(createdAt);
-    const now = new Date();
-
-    return (
-      productDate.getDate() === now.getDate() &&
-      productDate.getMonth() === now.getMonth() &&
-      productDate.getFullYear() === now.getFullYear()
-    );
-  };
-
-  const getProductAge = (createdAt) => {
-    if (!createdAt) return '';
-
-    const productDate = new Date(createdAt);
-    const now = new Date();
-    const diffInMs = now - productDate;
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-    const diffInWeeks = Math.floor(diffInDays / 7);
-    const diffInMonths = Math.floor(diffInDays / 30);
-    const diffInYears = Math.floor(diffInDays / 365);
-
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    if (diffInWeeks === 1) return '1 week ago';
-    if (diffInWeeks < 4) return `${diffInWeeks} weeks ago`;
-    if (diffInMonths === 1) return '1 month ago';
-    if (diffInMonths < 12) return `${diffInMonths} months ago`;
-    if (diffInYears === 1) return '1 year ago';
-    return `${diffInYears} years ago`;
-  };
-
+  // ✅ Filter + Sort memoized
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
+    const search = debouncedSearch.toLowerCase().trim();
+
     let filtered = posts.filter((post) => {
+      if (!search && !selectedCategory) return true;
+
       const matchesSearch =
-        post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.location?.toLowerCase().includes(searchQuery.toLowerCase());
+        !search ||
+        post.title?.toLowerCase().includes(search) ||
+        post.category?.toLowerCase().includes(search) ||
+        post.location?.toLowerCase().includes(search);
 
       const matchesCategory = !selectedCategory || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
@@ -184,7 +213,7 @@ export const Home = () => {
     }
 
     return filtered;
-  }, [posts, searchQuery, selectedCategory, sortBy]);
+  }, [posts, debouncedSearch, selectedCategory, sortBy]);
 
   const sortOptions = [
     { value: 'newest', label: 'Newest First' },
@@ -196,6 +225,11 @@ export const Home = () => {
   ];
 
   const currentSortLabel = sortOptions.find((opt) => opt.value === sortBy)?.label || 'Newest First';
+
+  const newProductsCount = useMemo(
+    () => filteredPosts.filter((p) => isNewProduct(p.created_at)).length,
+    [filteredPosts]
+  );
 
   if (isLoading) return <ShimmerEffect />;
 
@@ -218,10 +252,7 @@ export const Home = () => {
 
       <main className='w-full min-h-screen pt-18 select-none bg-[#eee]'>
         {/* Search Banner */}
-        <section
-          className='max-w-6xl mx-auto px-3 sm:px-6 mt-2 sm:mt-4'
-          aria-label="Search and filter"
-        >
+        <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-2 sm:mt-4'>
           <div className='w-full bg-[#0a4d3c] text-white p-4 sm:p-8 rounded-2xl sm:rounded-3xl shadow-lg flex flex-col items-center justify-center text-center relative overflow-hidden'>
             <h1 className='text-xl sm:text-4xl font-extrabold tracking-tight mb-1 sm:mb-2'>
               Buy & Sell Anything in <span className='text-[#D4AF37]'>Swabi!</span>
@@ -238,12 +269,12 @@ export const Home = () => {
                 placeholder='Search items (e.g. Alto, Mobile...)'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className='w-full text-gray-800 bg-white border-0 text-xs sm:text-base pl-3.5 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md outline-none focus:ring-2 focus:ring-[#D4AF37] transition-all'
+                className='w-full text-gray-800 bg-white border-0 text-xs sm:text-base pl-3.5 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md outline-none focus:ring-2 focus:ring-[#D4AF37] transition-shadow'
               />
               <button
                 type="button"
                 aria-label="Search"
-                className='absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#0a4d3c] hover:bg-[#07382c] text-white p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-all cursor-pointer'
+                className='absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#0a4d3c] hover:bg-[#07382c] text-white p-1.5 sm:p-2 rounded-lg sm:rounded-xl transition-colors cursor-pointer'
               >
                 <Search className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
               </button>
@@ -251,7 +282,7 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* ✅ CATEGORY CHIPS ROW */}
+        {/* ✅ Category Chips */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between mb-2'>
             <h3 className='text-[11px] sm:text-xs font-bold text-gray-600 uppercase tracking-wider'>
@@ -264,17 +295,20 @@ export const Home = () => {
             >
               {showAllCategories ? 'Show Less' : `Show All (${categories.length})`}
               <ChevronDown
-                className={`w-3 h-3 transition-transform ${showAllCategories ? 'rotate-180' : ''}`}
+                className={`w-3 h-3 transition-transform duration-200 ${showAllCategories ? 'rotate-180' : ''}`}
               />
             </button>
           </div>
 
-          <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
+          <div
+            className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent [content-visibility:auto]'
+            style={{ containIntrinsicSize: 'auto 40px' }}
+          >
             {/* All Chip */}
             <button
               type="button"
               onClick={() => setSelectedCategory('')}
-              className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+              className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
                 selectedCategory === ''
                   ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
@@ -302,7 +336,7 @@ export const Home = () => {
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                  className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
                     isActive
                       ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
                       : hasAds
@@ -327,12 +361,11 @@ export const Home = () => {
               );
             })}
 
-            {/* Show All Button (agar 10 se zyada hain) */}
             {!showAllCategories && sortedCategories.length > 10 && (
               <button
                 type="button"
                 onClick={() => setShowAllCategories(true)}
-                className='shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-[#0a4d3c] px-3 py-1.5 rounded-full border-2 border-dashed border-[#0a4d3c]/40 hover:border-[#0a4d3c] hover:bg-[#effffb] transition-all cursor-pointer'
+                className='shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-[#0a4d3c] px-3 py-1.5 rounded-full border-2 border-dashed border-[#0a4d3c]/40 hover:border-[#0a4d3c] hover:bg-[#effffb] transition-colors cursor-pointer'
               >
                 <span>+{sortedCategories.length - 10} more</span>
               </button>
@@ -340,7 +373,7 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* Total Products Stats Bar */}
+        {/* Stats Bar */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
             <div className='flex items-center gap-2'>
@@ -350,11 +383,11 @@ export const Home = () => {
               </span>
             </div>
 
-            {filteredPosts.filter(p => isNewProduct(p.created_at)).length > 0 && (
+            {newProductsCount > 0 && (
               <div className='flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg'>
                 <span className='w-1.5 h-1.5 rounded-full bg-emerald-500'></span>
                 <span className='text-[10px] sm:text-xs font-bold text-emerald-700'>
-                  {filteredPosts.filter(p => isNewProduct(p.created_at)).length} NEW
+                  {newProductsCount} NEW
                 </span>
               </div>
             )}
@@ -368,13 +401,13 @@ export const Home = () => {
               <button
                 type="button"
                 onClick={() => setShowSortMenu(!showSortMenu)}
-                className='flex items-center gap-1.5 bg-white border border-gray-300 hover:border-[#0a4d3c] text-gray-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-sm transition-all cursor-pointer'
+                className='flex items-center gap-1.5 bg-white border border-gray-300 hover:border-[#0a4d3c] text-gray-700 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-sm transition-colors cursor-pointer'
               >
                 <ArrowUpDown className='w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0a4d3c]' />
                 <span className='hidden sm:inline'>{currentSortLabel}</span>
                 <span className='sm:hidden'>Sort</span>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-500 transition-transform ${
+                  className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${
                     showSortMenu ? 'rotate-180' : ''
                   }`}
                 />
@@ -415,7 +448,7 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* Products Grid */}
+        {/* Products Grid — ✅ OPTIMIZED */}
         <section
           className='max-w-6xl mx-auto px-3 sm:px-6 mt-4 pb-12'
           aria-label="Product listings"
@@ -431,15 +464,17 @@ export const Home = () => {
               {filteredPosts?.map((product) => (
                 <article
                   key={product.id}
-                  className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group'
+                  className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md flex flex-col justify-between group [content-visibility:auto]'
+                  style={{ containIntrinsicSize: 'auto 280px' }}
                   itemScope
                   itemType="https://schema.org/Product"
                 >
                   <div className='relative aspect-square overflow-hidden bg-gray-100 p-2'>
                     <img
-                      src={product.image_url || "https://via.placeholder.com/300"}
+                      src={product.image_url || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
                       alt={`${product.title} - ${product.category || 'Product'} in ${product.location || 'Swabi'}`}
                       loading='lazy'
+                      decoding='async'
                       itemProp="image"
                       className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
                     />
@@ -521,7 +556,7 @@ export const Home = () => {
         </section>
       </main>
 
-      {/* ✅ BACK TO TOP */}
+      {/* Back to Top */}
       <button
         type="button"
         onClick={scrollToTop}
