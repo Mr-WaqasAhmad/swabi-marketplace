@@ -178,7 +178,7 @@ export const Messages = () => {
                 return (
                   <Link
                     key={conv.id}
-                    to={`/chat/${conv.post_id}/${conv.is_buyer ? conv.seller_id : conv.buyer_id}`}
+                    to={`/chat/${conv.post_id}`}
                     className={`flex items-center gap-3 bg-white border rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
                       hasUnread ? 'border-[#0a4d3c]/30 bg-[#effffb]/30' : 'border-gray-200'
                     }`}
