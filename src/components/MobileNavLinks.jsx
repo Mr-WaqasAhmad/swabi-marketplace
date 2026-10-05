@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { MessageCircle } from 'lucide-react';
 import { useUser } from '../contexts/UserDetailsContext';
 
 export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
@@ -43,7 +44,6 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
     };
 
     if (isOpened) {
-      // ✅ `click` use karein (mousedown nahi) — kyunki button ka click pehle aata hai
       document.addEventListener('click', handleClickOutside);
       document.addEventListener('keydown', handleEscape);
       window.addEventListener('scroll', handleScroll, { passive: true });
@@ -88,6 +88,22 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         >
           About Us
         </NavLink>
+
+        {/* ✅ Messages Link */}
+        {user && (
+          <NavLink
+            to="/messages"
+            onClick={() => setIsOpened(false)}
+            className={({ isActive }) =>
+              isActive
+                ? 'text-[#0a4d3c] font-bold flex items-center gap-1'
+                : 'text-gray-800 font-medium hover:text-[#0a4d3c] flex items-center gap-1'
+            }
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Messages</span>
+          </NavLink>
+        )}
       </div>
 
       <NavLink
