@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, ShoppingCart, Flag } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, ShoppingCart, Flag, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
 import { OrderModal } from './OrderModal';
 import { ReportModal } from './ReportModal';
 import { SEO } from './SEO';
-import { CommentsSection } from './CommentsSection';
+import { ChatButton } from './ChatButton';
 
 const getData = async (id) => {
   if (!id) return null;
@@ -79,7 +79,7 @@ export const SingleProductDetails = () => {
     refetchOnWindowFocus: true,
   });
 
-  // ✅ Views Increment (har page visit pe +1) — bas counting, dikhayenge nahi
+  // ✅ Views Increment
   useEffect(() => {
     if (param.id) {
       supabase.rpc('increment_view', { post_id: param.id }).then(({ error }) => {
@@ -106,48 +106,6 @@ export const SingleProductDetails = () => {
 
   const isSold = product?.status === 'sold';
   const similarProducts = product?.similar_products || [];
-
-  // WhatsApp Link
-  const getWhatsappLink = (whatsapp) => {
-    if (!whatsapp) return null;
-
-    let cleaned = whatsapp.replace(/[^0-9]/g, '');
-    if (cleaned.startsWith('0')) {
-      cleaned = '92' + cleaned.slice(1);
-    }
-    if (!cleaned.startsWith('92')) {
-      cleaned = '92' + cleaned;
-    }
-
-    const message = `Assalam o Alaikum ${sellerName}!
-
-Main ne aapki yeh product *Swabi Market* par dekhi hai:
-
-━━━━━━━━━━━━━━━━━━━━
-📦 *PRODUCT DETAILS*
-━━━━━━━━━━━━━━━━━━━━
-
-*Title:* ${product?.title || 'N/A'}
-*Price:* PKR ${Number(product?.price)?.toLocaleString() || 'N/A'}
-*Category:* ${product?.category || 'N/A'}
-*Warranty:* ${product?.warranty || 'No Warranty'}
-*Location:* ${product?.location || 'Swabi'}
-
-📝 *Description:*
-${product?.description || 'N/A'}
-
-━━━━━━━━━━━━━━━━━━━━
-
-Kya yeh product abhi bhi available hai? 
-Mujhe iske baare mein aur maloomat chahiye.
-
-Shukriya! 🙏`;
-
-    const encodedMessage = encodeURIComponent(message);
-    return `https://wa.me/${cleaned}?text=${encodedMessage}`;
-  };
-
-  const whatsappLink = getWhatsappLink(sellerWhatsapp);
 
   // Share Handler
   const handleShare = async () => {
@@ -294,7 +252,6 @@ Shukriya! 🙏`;
                     </div>
                   )}
 
-                  {/* Watermark */}
                   <div className='absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
                     <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
                     Swabi Market
@@ -319,6 +276,13 @@ Shukriya! 🙏`;
                     <MapPin className='w-4 h-4 text-red-500 shrink-0' aria-hidden="true" />
                     <span className='font-medium'>{product?.location}</span>
                   </address>
+
+                  <div className='flex items-center gap-2 text-xs sm:text-sm text-gray-500 mt-2'>
+                    <Eye className='w-4 h-4 text-[#0a4d3c] shrink-0' aria-hidden="true" />
+                    <span className='font-medium'>
+                      {product?.views || 0} {product?.views === 1 ? 'view' : 'views'}
+                    </span>
+                  </div>
 
                   <div className='mt-4 pt-3 border-t border-gray-50 flex flex-wrap items-center gap-3'>
                     <div className='flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/60 text-xs font-bold w-fit'>
@@ -400,18 +364,11 @@ Shukriya! 🙏`;
                         <span>Call Seller</span>
                       </a>
 
-                      {whatsappLink && (
-                        <a
-                          href={whatsappLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`WhatsApp seller ${sellerName}`}
-                          className='w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1FA855] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
-                        >
-                          <MessageCircle className='w-4 h-4' aria-hidden="true" />
-                          <span>WhatsApp Seller</span>
-                        </a>
-                      )}
+                      {/* ✅ Chat Button — WhatsApp ki jagah */}
+                      <ChatButton
+                        sellerId={product?.user_id}
+                        postId={param.id}
+                      />
 
                       {/* Order Now Button */}
                       <button
@@ -447,14 +404,9 @@ Shukriya! 🙏`;
             </aside>
           </div>
 
-          {/* ✅ COMMENTS SECTION */}
-<div className='mt-12'>
-  <CommentsSection postId={param.id} />
-</div>
-
-{/* SIMILAR PRODUCTS SECTION */}
-{similarProducts.length > 0 && (
-  <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
+          {/* SIMILAR PRODUCTS SECTION */}
+          {similarProducts.length > 0 && (
+            <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
               <div className='flex items-center justify-between mb-5'>
                 <div>
                   <h2 className='text-xl sm:text-2xl font-bold text-gray-800'>
