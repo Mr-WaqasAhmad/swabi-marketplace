@@ -5,7 +5,7 @@ import { ArrowLeft, Send, Loader2, User2, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
-// ✅ Conversation + messages fetch (same as before)
+// ✅ Conversation + messages fetch
 const fetchConversationData = async (postId, userId) => {
   const { data: post, error: postError } = await supabase
     .from('posts')
@@ -142,12 +142,14 @@ export const Chat = () => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  const channelRef = useRef(null);
+  const typingChannelRef = useRef(null);
+  const presenceChannelRef = useRef(null);
+
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [otherTypingName, setOtherTypingName] = useState('');
+  const [otherUserOnline, setOtherUserOnline] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['chat', postId, user?.id],
@@ -158,6 +160,7 @@ export const Chat = () => {
   });
 
   const { conversation, messages = [], post, seller, isSellerNoConv } = data || {};
+  const otherUserId = seller?.id;
 
   // ✅ Realtime — naye messages
   useEffect(() => {
@@ -186,7 +189,7 @@ export const Chat = () => {
     };
   }, [conversation?.id, queryClient, postId, user?.id]);
 
-  // ✅ Typing indicator — Supabase Broadcast channel
+  // ✅ Typing indicator — Supabase Broadcast
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
 
@@ -199,65 +202,58 @@ export const Chat = () => {
     channel
       .on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id === user.id) return;
-
-        setOtherTypingName(payload.payload.name || 'User');
         setOtherUserTyping(true);
       })
       .on('broadcast', { event: 'stop-typing' }, (payload) => {
         if (payload.payload.user_id === user.id) return;
-
         setOtherUserTyping(false);
       })
       .subscribe();
 
-    channelRef.current = channel;
+    typingChannelRef.current = channel;
 
     return () => {
       supabase.removeChannel(channel);
-      channelRef.current = null;
+      typingChannelRef.current = null;
     };
   }, [conversation?.id, user?.id]);
 
-  // ✅ User type kare — broadcast karein
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setNewMessage(value);
+  // ✅ Presence — kaun online hai
+  useEffect(() => {
+    if (!otherUserId || !user?.id) return;
 
-    if (!channelRef.current || !user?.id) return;
-
-    const userName =
-      user?.full_name ||
-      user?.user_metadata?.full_name ||
-      'Someone';
-
-    // Typing broadcast
-    if (value.trim().length > 0) {
-      channelRef.current.send({
-        type: 'broadcast',
-        event: 'typing',
-        payload: {
-          user_id: user.id,
-          name: userName,
+    const channel = supabase.channel(`presence-${otherUserId}`, {
+      config: {
+        presence: {
+          key: user.id,
         },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const isOtherOnline = Object.values(state).some((arr) =>
+          arr.some((p) => p.user_id === otherUserId)
+        );
+        setOtherUserOnline(isOtherOnline);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
       });
-    }
 
-    // Purana timeout clear
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+    presenceChannelRef.current = channel;
 
-    // 2 second baad typing stop broadcast
-    typingTimeoutRef.current = setTimeout(() => {
-      if (channelRef.current && user?.id) {
-        channelRef.current.send({
-          type: 'broadcast',
-          event: 'stop-typing',
-          payload: { user_id: user.id },
-        });
-      }
-    }, 2000);
-  };
+    return () => {
+      supabase.removeChannel(channel);
+      presenceChannelRef.current = null;
+    };
+  }, [otherUserId, user?.id]);
 
   // ✅ Auto-scroll
   useEffect(() => {
@@ -302,6 +298,36 @@ export const Chat = () => {
     markRead();
   }, [conversation?.id, conversation?.buyer_id, messages, user?.id, queryClient, conversation]);
 
+  // ✅ Input change — typing broadcast
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    if (!typingChannelRef.current || !user?.id) return;
+
+    if (value.trim().length > 0) {
+      typingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { user_id: user.id },
+      });
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (typingChannelRef.current && user?.id) {
+        typingChannelRef.current.send({
+          type: 'broadcast',
+          event: 'stop-typing',
+          payload: { user_id: user.id },
+        });
+      }
+    }, 2000);
+  };
+
   // ✅ Send message
   const handleSend = async (e) => {
     e.preventDefault();
@@ -311,9 +337,8 @@ export const Chat = () => {
     setError('');
 
     try {
-      // Stop typing broadcast
-      if (channelRef.current) {
-        channelRef.current.send({
+      if (typingChannelRef.current) {
+        typingChannelRef.current.send({
           type: 'broadcast',
           event: 'stop-typing',
           payload: { user_id: user.id },
@@ -418,7 +443,7 @@ export const Chat = () => {
     >
       <div className='max-w-3xl mx-auto w-full flex flex-col h-full px-2 sm:px-4 py-2'>
 
-        {/* Header */}
+        {/* ✅ Header with Online Status */}
         <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 shrink-0'>
           <button
             onClick={() => navigate('/messages')}
@@ -428,16 +453,40 @@ export const Chat = () => {
             <ArrowLeft className='w-4 h-4 text-gray-700' />
           </button>
 
-          <div className='w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-base shrink-0'>
-            {otherName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
+          {/* ✅ Avatar with online dot */}
+          <div className='relative shrink-0'>
+            <div className='w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-base'>
+              {otherName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
+            </div>
+
+            <span
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white transition-colors ${
+                otherUserOnline ? 'bg-emerald-500' : 'bg-gray-400'
+              }`}
+            >
+              {otherUserOnline && (
+                <span className='absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75'></span>
+              )}
+            </span>
           </div>
 
           <div className='flex-1 min-w-0'>
-            <h1 className='font-bold text-gray-800 text-sm sm:text-base truncate'>
-              {otherName}
-            </h1>
+            <div className='flex items-center gap-1.5'>
+              <h1 className='font-bold text-gray-800 text-sm sm:text-base truncate'>
+                {otherName}
+              </h1>
+              {otherUserOnline && (
+                <span className='text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0'>
+                  Online
+                </span>
+              )}
+            </div>
             <p className='text-[10px] sm:text-xs text-gray-500 truncate'>
-              Re: {post?.title || 'Product'}
+              {otherUserTyping ? (
+                <span className='text-[#0a4d3c] font-semibold'>typing...</span>
+              ) : (
+                <>Re: {post?.title || 'Product'}</>
+              )}
             </p>
           </div>
         </div>
