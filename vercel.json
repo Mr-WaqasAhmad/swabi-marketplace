@@ -47,6 +47,14 @@
     {
       "source": "/editad/:id",
       "destination": "/index.html"
+    },
+    {
+      "source": "/chat/:postId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/messages",
+      "destination": "/index.html"
     }
   ]
 }
