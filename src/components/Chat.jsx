@@ -5,9 +5,34 @@ import { ArrowLeft, Send, Loader2, User2, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
-// ✅ Conversation + messages fetch
-const fetchConversationData = async (postId, sellerId, userId) => {
-  // 1. Existing conversation dhoondein
+// ✅ Conversation + messages fetch — CORRECT LOGIC
+const fetchConversationData = async (postId, userId) => {
+  // 1. Post fetch karein (seller pata chalega)
+  const { data: post, error: postError } = await supabase
+    .from('posts')
+    .select('id, title, price, image_url, user_id')
+    .eq('id', postId)
+    .single();
+
+  if (postError) throw new Error(postError.message);
+  if (!post) throw new Error('Post not found');
+
+  const sellerId = post.user_id;
+
+  // ❌ Self chat check
+  if (sellerId === userId) {
+    return { post, seller: null, conversation: null, messages: [], isSelf: true };
+  }
+
+  // 2. Seller profile fetch
+  const { data: seller } = await supabase
+    .from('profiles')
+    .select('id, full_name')
+    .eq('id', sellerId)
+    .maybeSingle();
+
+  // 3. Conversation dhoondein — SIRF ek honi chahiye
+  //    Buyer = current user, Seller = post owner
   const { data: existing, error: findError } = await supabase
     .from('conversations')
     .select('*')
@@ -22,7 +47,7 @@ const fetchConversationData = async (postId, sellerId, userId) => {
 
   let conversation = existing;
 
-  // 2. Agar nahi hai to naya banao
+  // 4. Agar nahi hai to naya banao
   if (!conversation) {
     const { data: newConv, error: createError } = await supabase
       .from('conversations')
@@ -38,7 +63,7 @@ const fetchConversationData = async (postId, sellerId, userId) => {
     conversation = newConv;
   }
 
-  // 3. Messages fetch karein
+  // 5. Messages fetch — conversation se
   const { data: messages, error: msgError } = await supabase
     .from('messages')
     .select('*')
@@ -47,28 +72,15 @@ const fetchConversationData = async (postId, sellerId, userId) => {
 
   if (msgError) throw new Error(msgError.message);
 
-  // 4. Post + seller info fetch karein
-  const { data: post } = await supabase
-    .from('posts')
-    .select('id, title, price, image_url')
-    .eq('id', postId)
-    .maybeSingle();
-
-  const { data: seller } = await supabase
-    .from('profiles')
-    .select('id, full_name')
-    .eq('id', sellerId)
-    .maybeSingle();
-
   return {
-    conversation,
-    messages: messages || [],
     post,
     seller,
+    conversation,
+    messages: messages || [],
+    isSelf: false,
   };
 };
 
-// ✅ Time ago
 const getTimeAgo = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -85,7 +97,6 @@ const getTimeAgo = (dateString) => {
   return date.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
 };
 
-// ✅ Date formatting
 const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -99,7 +110,7 @@ const formatDate = (dateString) => {
 };
 
 export const Chat = () => {
-  const { postId, sellerId } = useParams();
+  const { postId } = useParams();  // ✅ Sirf postId
   const { user } = useUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -108,25 +119,17 @@ export const Chat = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
 
-  // ✅ Prevent self-chat
-  useEffect(() => {
-    if (user?.id === sellerId) {
-      setError('Aap khud ko message nahi kar sakte.');
-    }
-  }, [user?.id, sellerId]);
-
-  // ✅ Fetch conversation data
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['chat', postId, sellerId, user?.id],
-    queryFn: () => fetchConversationData(postId, sellerId, user.id),
-    enabled: !!postId && !!sellerId && !!user?.id && user?.id !== sellerId,
+    queryKey: ['chat', postId, user?.id],  // ✅ Simple key
+    queryFn: () => fetchConversationData(postId, user.id),
+    enabled: !!postId && !!user?.id,
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
 
-  const { conversation, messages = [], post, seller } = data || {};
+  const { conversation, messages = [], post, seller, isSelf } = data || {};
 
-  // ✅ Realtime — naye messages ka intezar
+  // ✅ Realtime — naye messages
   useEffect(() => {
     if (!conversation?.id) return;
 
@@ -140,9 +143,8 @@ export const Chat = () => {
           table: 'messages',
           filter: `conversation_id=eq.${conversation.id}`,
         },
-        (payload) => {
-          // Naya message — refetch
-          queryClient.invalidateQueries(['chat', postId, sellerId, user?.id]);
+        () => {
+          queryClient.invalidateQueries(['chat', postId, user?.id]);
         }
       )
       .subscribe();
@@ -150,14 +152,38 @@ export const Chat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversation?.id, queryClient, postId, sellerId, user?.id]);
+  }, [conversation?.id, queryClient, postId, user?.id]);
 
-  // ✅ Auto-scroll to bottom
+  // ✅ Auto-scroll
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // ✅ Mark as read
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+
+    const markRead = async () => {
+      const isBuyer = user.id === conversation.buyer_id;
+
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversation.id)
+        .neq('sender_id', user.id);
+
+      await supabase
+        .from('conversations')
+        .update({ [isBuyer ? 'buyer_unread' : 'seller_unread']: 0 })
+        .eq('id', conversation.id);
+
+      queryClient.invalidateQueries(['conversations', user?.id]);
+    };
+
+    markRead();
+  }, [conversation?.id, conversation?.buyer_id, user?.id, queryClient]);
 
   // ✅ Send message
   const handleSend = async (e) => {
@@ -178,7 +204,7 @@ export const Chat = () => {
 
       if (sendError) throw sendError;
 
-      // Update conversation
+      // Update conversation metadata
       const isBuyer = user.id === conversation.buyer_id;
       await supabase
         .from('conversations')
@@ -191,7 +217,8 @@ export const Chat = () => {
         .eq('id', conversation.id);
 
       setNewMessage('');
-      queryClient.invalidateQueries(['chat', postId, sellerId, user?.id]);
+      queryClient.invalidateQueries(['chat', postId, user?.id]);
+      queryClient.invalidateQueries(['conversations', user?.id]);
     } catch (err) {
       setError(err.message || 'Message send nahi hua.');
     } finally {
@@ -199,34 +226,6 @@ export const Chat = () => {
     }
   };
 
-  // ✅ Mark messages as read
-  useEffect(() => {
-    if (!conversation?.id || !user?.id) return;
-
-    const markRead = async () => {
-      const isBuyer = user.id === conversation.buyer_id;
-      const otherUserMessages = messages.filter((m) => m.sender_id !== user.id && !m.is_read);
-
-      if (otherUserMessages.length === 0) return;
-
-      await supabase
-        .from('messages')
-        .update({ is_read: true })
-        .eq('conversation_id', conversation.id)
-        .neq('sender_id', user.id);
-
-      await supabase
-        .from('conversations')
-        .update({ [isBuyer ? 'buyer_unread' : 'seller_unread']: 0 })
-        .eq('id', conversation.id);
-
-      queryClient.invalidateQueries(['conversations']);
-    };
-
-    markRead();
-  }, [conversation?.id, messages, user?.id, queryClient]);
-
-  // ✅ Loading
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center pt-16 bg-gray-50'>
@@ -238,13 +237,12 @@ export const Chat = () => {
     );
   }
 
-  // ✅ Error
   if (isError || !data) {
     return (
       <div className='min-h-screen flex flex-col items-center justify-center pt-16 bg-gray-50 gap-4 px-4'>
         <div className='bg-red-50 border border-red-200 rounded-2xl p-6 max-w-md text-center'>
           <p className='text-red-700 font-bold mb-2'>Chat load nahi hui!</p>
-          <p className='text-xs text-red-600'>Please try again later.</p>
+          <p className='text-xs text-red-600'>Please try again.</p>
         </div>
         <button
           onClick={() => navigate(-1)}
@@ -256,8 +254,8 @@ export const Chat = () => {
     );
   }
 
-  // ✅ Self chat
-  if (user?.id === sellerId) {
+  // ❌ Self chat
+  if (isSelf) {
     return (
       <div className='min-h-screen flex flex-col items-center justify-center pt-16 bg-gray-50 gap-4 px-4'>
         <div className='bg-amber-50 border border-amber-200 rounded-2xl p-6 max-w-md text-center'>
@@ -274,7 +272,6 @@ export const Chat = () => {
     );
   }
 
-  // ✅ Group messages by date
   const groupedMessages = messages.reduce((groups, message) => {
     const date = new Date(message.created_at).toDateString();
     if (!groups[date]) groups[date] = [];
@@ -288,7 +285,7 @@ export const Chat = () => {
     <div className='w-full min-h-screen bg-gray-50 pt-16 pb-2 select-none flex flex-col'>
       <div className='max-w-3xl mx-auto w-full flex flex-col h-[calc(100vh-4rem)] px-2 sm:px-4'>
 
-        {/* ✅ Header */}
+        {/* Header */}
         <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3'>
           <Link
             to={`/singleproductdetails/${postId}`}
@@ -312,7 +309,7 @@ export const Chat = () => {
           </div>
         </div>
 
-        {/* ✅ Product Context (top) */}
+        {/* Product Context */}
         {post && (
           <Link
             to={`/singleproductdetails/${postId}`}
@@ -334,31 +331,27 @@ export const Chat = () => {
           </Link>
         )}
 
-        {/* ✅ Messages Area */}
+        {/* Messages */}
         <div className='flex-1 bg-white border border-gray-200 border-t-0 overflow-y-auto px-3 sm:px-4 py-4 flex flex-col gap-3'>
           {messages.length === 0 ? (
             <div className='flex-1 flex flex-col items-center justify-center text-center px-4'>
               <div className='w-16 h-16 rounded-full bg-[#effffb] flex items-center justify-center mb-3'>
                 <MessageCircle className='w-7 h-7 text-[#0a4d3c]' />
               </div>
-              <p className='text-sm font-bold text-gray-700 mb-1'>
-                Chat shuru karein
-              </p>
+              <p className='text-sm font-bold text-gray-700 mb-1'>Chat shuru karein</p>
               <p className='text-xs text-gray-500 max-w-xs'>
-                {sellerName} ko apna sawaal bhejein. Woh jab online aayenge to reply karenge.
+                {sellerName} ko apna sawaal bhejein.
               </p>
             </div>
           ) : (
             Object.entries(groupedMessages).map(([date, msgs]) => (
               <div key={date} className='flex flex-col gap-3'>
-                {/* Date Divider */}
                 <div className='flex items-center justify-center'>
                   <span className='text-[10px] font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full'>
                     {formatDate(msgs[0].created_at)}
                   </span>
                 </div>
 
-                {/* Messages */}
                 {msgs.map((message) => {
                   const isOwn = message.sender_id === user?.id;
                   return (
@@ -396,14 +389,13 @@ export const Chat = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* ✅ Error */}
         {error && (
           <div className='bg-red-50 border border-red-200 border-t-0 px-3 py-2 text-red-700 text-xs font-medium'>
             {error}
           </div>
         )}
 
-        {/* ✅ Input */}
+        {/* Input */}
         <form
           onSubmit={handleSend}
           className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm'
