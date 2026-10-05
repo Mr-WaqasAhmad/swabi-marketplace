@@ -7,13 +7,13 @@ import { supabase } from './supabaseClient';
 import { categories, getCategoryIcon } from './CategorySelector';
 import { SEO } from './SEO';
 
-// ✅ Posts + Ratings fetch
 const fetchPostsFromSupabase = async () => {
   const { data: postsData, error: postsError } = await supabase
     .from('posts')
-    .select('id, title, price, category, location, image_url, views, created_at, status, user_id')
+    .select('id, title, price, category, location, image_url, views, created_at')
     .eq('status', 'active')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(50);
 
   if (postsError) throw new Error(postsError.message);
   if (!postsData || postsData.length === 0) return [];
@@ -46,7 +46,6 @@ const fetchPostsFromSupabase = async () => {
   });
 };
 
-// ✅ Time ago helper
 const getProductAge = (createdAt) => {
   if (!createdAt) return '';
 
@@ -57,23 +56,17 @@ const getProductAge = (createdAt) => {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
   const diffInWeeks = Math.floor(diffInDays / 7);
-  const diffInMonths = Math.floor(diffInDays / 30);
-  const diffInYears = Math.floor(diffInDays / 365);
 
   if (diffInMinutes < 1) return 'Just now';
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
   if (diffInHours < 24) return `${diffInHours}h ago`;
   if (diffInDays === 1) return 'Yesterday';
   if (diffInDays < 7) return `${diffInDays}d ago`;
-  if (diffInWeeks === 1) return '1 week ago';
+  if (diffInWeeks === 1) return '1w ago';
   if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
-  if (diffInMonths === 1) return '1 month ago';
-  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
-  if (diffInYears === 1) return '1 year ago';
-  return `${diffInYears}y ago`;
+  return new Date(createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
 };
 
-// ✅ "New" badge helper
 const isNewProduct = (createdAt) => {
   if (!createdAt) return false;
   const productDate = new Date(createdAt);
@@ -95,7 +88,6 @@ export const Home = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
-  // ✅ Debounced search — typing smooth
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -104,7 +96,6 @@ export const Home = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // ✅ Scroll listener — throttled
   useEffect(() => {
     let ticking = false;
 
@@ -126,7 +117,6 @@ export const Home = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // ✅ Query with longer stale time
   const { data: posts, isLoading, isError } = useQuery({
     queryKey: ['products'],
     queryFn: fetchPostsFromSupabase,
@@ -137,7 +127,6 @@ export const Home = () => {
     refetchOnReconnect: false,
   });
 
-  // ✅ Category counts memoized
   const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
@@ -148,7 +137,6 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ Sorted categories
   const sortedCategories = useMemo(() => {
     const withAds = [];
     const withoutAds = [];
@@ -166,11 +154,11 @@ export const Home = () => {
     return [...withAds, ...withoutAds];
   }, [categoryCounts]);
 
+  // ✅ Default sirf 6 categories
   const visibleCategories = useMemo(() => {
-    return showAllCategories ? sortedCategories : sortedCategories.slice(0, 10);
+    return showAllCategories ? sortedCategories : sortedCategories.slice(0, 6);
   }, [showAllCategories, sortedCategories]);
 
-  // ✅ Filter + Sort memoized
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
@@ -251,7 +239,6 @@ export const Home = () => {
       />
 
       <main className='w-full min-h-screen pt-18 select-none bg-[#eee]'>
-        {/* Search Banner */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-2 sm:mt-4'>
           <div className='w-full bg-[#0a4d3c] text-white p-4 sm:p-8 rounded-2xl sm:rounded-3xl shadow-lg flex flex-col items-center justify-center text-center relative overflow-hidden'>
             <h1 className='text-xl sm:text-4xl font-extrabold tracking-tight mb-1 sm:mb-2'>
@@ -269,7 +256,7 @@ export const Home = () => {
                 placeholder='Search items (e.g. Alto, Mobile...)'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className='w-full text-gray-800 bg-white border-0 text-xs sm:text-base pl-3.5 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md outline-none focus:ring-2 focus:ring-[#D4AF37] transition-shadow'
+                className='w-full text-gray-800 bg-white border-0 text-xs sm:text-base pl-3.5 pr-10 py-2 sm:py-3.5 rounded-xl sm:rounded-2xl shadow-md outline-none focus:ring-2 focus:ring-[#D4AF37]'
               />
               <button
                 type="button"
@@ -282,7 +269,7 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* ✅ Category Chips */}
+        {/* Categories */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between mb-2'>
             <h3 className='text-[11px] sm:text-xs font-bold text-gray-600 uppercase tracking-wider'>
@@ -295,20 +282,22 @@ export const Home = () => {
             >
               {showAllCategories ? 'Show Less' : `Show All (${categories.length})`}
               <ChevronDown
-                className={`w-3 h-3 transition-transform duration-200 ${showAllCategories ? 'rotate-180' : ''}`}
+                className={`w-3 h-3 transition-transform ${showAllCategories ? 'rotate-180' : ''}`}
               />
             </button>
           </div>
 
           <div
-            className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent [content-visibility:auto]'
-            style={{ containIntrinsicSize: 'auto 40px' }}
+            className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'
+            style={{
+              contentVisibility: 'auto',
+              containIntrinsicSize: 'auto 40px',
+            }}
           >
-            {/* All Chip */}
             <button
               type="button"
               onClick={() => setSelectedCategory('')}
-              className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
+              className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${
                 selectedCategory === ''
                   ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
                   : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
@@ -325,7 +314,6 @@ export const Home = () => {
               </span>
             </button>
 
-            {/* Category Chips */}
             {visibleCategories.map((cat) => {
               const isActive = selectedCategory === cat;
               const count = categoryCounts[cat] || 0;
@@ -336,12 +324,12 @@ export const Home = () => {
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
+                  className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${
                     isActive
                       ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
                       : hasAds
                         ? 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
-                        : 'bg-white text-gray-400 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+                        : 'bg-white text-gray-400 border-gray-200 hover:border-[#0a4d3c]'
                   }`}
                 >
                   <span className={isActive ? 'text-[#D4AF37]' : hasAds ? 'text-[#0a4d3c]' : 'text-gray-400'}>
@@ -361,25 +349,25 @@ export const Home = () => {
               );
             })}
 
-            {!showAllCategories && sortedCategories.length > 10 && (
+            {!showAllCategories && sortedCategories.length > 6 && (
               <button
                 type="button"
                 onClick={() => setShowAllCategories(true)}
                 className='shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-[#0a4d3c] px-3 py-1.5 rounded-full border-2 border-dashed border-[#0a4d3c]/40 hover:border-[#0a4d3c] hover:bg-[#effffb] transition-colors cursor-pointer'
               >
-                <span>+{sortedCategories.length - 10} more</span>
+                <span>+{sortedCategories.length - 6} more</span>
               </button>
             )}
           </div>
         </section>
 
-        {/* Stats Bar */}
+        {/* Stats */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
             <div className='flex items-center gap-2'>
               <span className='w-2 h-2 rounded-full bg-emerald-500'></span>
               <span className='text-xs sm:text-sm font-semibold text-gray-700'>
-                Total <span className='text-[#0a4d3c] font-bold'>{filteredPosts.length}</span> {filteredPosts.length === 1 ? 'Product' : 'Products'} Available
+                Total <span className='text-[#0a4d3c] font-bold'>{filteredPosts.length}</span> {filteredPosts.length === 1 ? 'Product' : 'Products'}
               </span>
             </div>
 
@@ -394,7 +382,7 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* Sort Bar */}
+        {/* Sort */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-end gap-2'>
             <div className='relative'>
@@ -407,7 +395,7 @@ export const Home = () => {
                 <span className='hidden sm:inline'>{currentSortLabel}</span>
                 <span className='sm:hidden'>Sort</span>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${
+                  className={`w-3.5 h-3.5 text-gray-500 transition-transform ${
                     showSortMenu ? 'rotate-180' : ''
                   }`}
                 />
@@ -448,7 +436,7 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* Products Grid — ✅ OPTIMIZED */}
+        {/* Products */}
         <section
           className='max-w-6xl mx-auto px-3 sm:px-6 mt-4 pb-12'
           aria-label="Product listings"
@@ -464,8 +452,11 @@ export const Home = () => {
               {filteredPosts?.map((product) => (
                 <article
                   key={product.id}
-                  className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md flex flex-col justify-between group [content-visibility:auto]'
-                  style={{ containIntrinsicSize: 'auto 280px' }}
+                  className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md flex flex-col justify-between'
+                  style={{
+                    contentVisibility: 'auto',
+                    containIntrinsicSize: 'auto 280px',
+                  }}
                   itemScope
                   itemType="https://schema.org/Product"
                 >
@@ -476,12 +467,12 @@ export const Home = () => {
                       loading='lazy'
                       decoding='async'
                       itemProp="image"
-                      className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
+                      className='w-full h-full object-contain'
                     />
 
                     {isNewProduct(product.created_at) && (
                       <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 z-10'>
-                        <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
+                        <span className='w-1.5 h-1.5 rounded-full bg-white'></span>
                         NEW
                       </div>
                     )}
@@ -556,12 +547,11 @@ export const Home = () => {
         </section>
       </main>
 
-      {/* Back to Top */}
       <button
         type="button"
         onClick={scrollToTop}
         aria-label="Back to top"
-        className={`fixed bottom-6 right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-[#0a4d3c] hover:bg-[#D4AF37] text-white hover:text-[#0a4d3c] shadow-lg hover:shadow-xl border border-white/20 transition-all duration-300 cursor-pointer ${
+        className={`fixed bottom-6 right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-[#0a4d3c] hover:bg-[#D4AF37] text-white hover:text-[#0a4d3c] shadow-lg border border-white/20 transition-all duration-300 cursor-pointer ${
           showBackToTop
             ? 'opacity-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 translate-y-4 pointer-events-none'
