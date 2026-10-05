@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { MessageCircle, Loader2, User2, ArrowLeft } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { MessageCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 import { SEO } from './SEO';
@@ -24,9 +24,8 @@ const getTimeAgo = (dateString) => {
   return date.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
 };
 
-// ✅ Conversations fetch karein
+// ✅ Conversations fetch
 const fetchConversations = async (userId) => {
-  // 1. Conversations fetch
   const { data: convs, error: convError } = await supabase
     .from('conversations')
     .select('*')
@@ -36,36 +35,30 @@ const fetchConversations = async (userId) => {
   if (convError) throw new Error(convError.message);
   if (!convs || convs.length === 0) return [];
 
-  // 2. Saare other user IDs nikaalein
   const otherUserIds = [
     ...new Set(
       convs.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))
     ),
   ];
 
-  // 3. Post IDs nikaalein
   const postIds = [...new Set(convs.map((c) => c.post_id).filter(Boolean))];
 
-  // 4. Profiles fetch
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, full_name')
     .in('id', otherUserIds);
 
-  // 5. Posts fetch
   const { data: posts } = await supabase
     .from('posts')
     .select('id, title, price, image_url')
     .in('id', postIds);
 
-  // 6. Maps
   const profilesMap = {};
   (profiles || []).forEach((p) => { profilesMap[p.id] = p; });
 
   const postsMap = {};
   (posts || []).forEach((p) => { postsMap[p.id] = p; });
 
-  // 7. Merge
   return convs.map((c) => {
     const isBuyer = c.buyer_id === userId;
     const otherId = isBuyer ? c.seller_id : c.buyer_id;
@@ -83,6 +76,7 @@ const fetchConversations = async (userId) => {
 
 export const Messages = () => {
   const { user } = useUser();
+  const queryClient = useQueryClient();
 
   const { data: conversations, isLoading, isError } = useQuery({
     queryKey: ['conversations', user?.id],
@@ -91,6 +85,31 @@ export const Messages = () => {
     staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
   });
+
+  // ✅ Realtime — naya message aane pe list update
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('messages-list')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+        },
+        () => {
+          queryClient.invalidateQueries(['conversations', user.id]);
+          queryClient.invalidateQueries(['header-unread']);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   if (isLoading) {
     return (
