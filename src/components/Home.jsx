@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star, ArrowUp } from 'lucide-react';
+import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star, ArrowUp, LayoutGrid } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
-import { CategorySelector, categories, getCategoryIcon } from './CategorySelector';
+import { categories, getCategoryIcon } from './CategorySelector';
 import { SEO } from './SEO';
 
 const fetchPostsFromSupabase = async () => {
@@ -76,7 +76,6 @@ export const Home = () => {
     refetchOnWindowFocus: false,
   });
 
-  // ✅ Category Counts
   const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
@@ -93,7 +92,6 @@ export const Home = () => {
     return categories.filter((cat) => (categoryCounts[cat] || 0) > 0);
   }, [posts, categoryCounts]);
 
-  // ✅ "New" badge
   const isNewProduct = (createdAt) => {
     if (!createdAt) return false;
     const productDate = new Date(createdAt);
@@ -106,7 +104,6 @@ export const Home = () => {
     );
   };
 
-  // ✅ Real-time Product Age
   const getProductAge = (createdAt) => {
     if (!createdAt) return '';
 
@@ -133,7 +130,6 @@ export const Home = () => {
     return `${diffInYears} years ago`;
   };
 
-  // ✅ Filter + Sort
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
@@ -235,73 +231,65 @@ export const Home = () => {
                 <Search className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
               </button>
             </div>
-
-            <CategorySelector
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              categoryCounts={categoryCounts}
-            />
           </div>
         </section>
 
-        {/* ✅ CATEGORY CHIPS ROW */}
-        {activeCategories.length > 0 && (
-          <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
-            <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
-              {/* All Button */}
-              <button
-                type="button"
-                onClick={() => setSelectedCategory('')}
-                className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-                  selectedCategory === ''
-                    ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
-                }`}
-              >
-                <span>All</span>
-                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  selectedCategory === ''
-                    ? 'bg-[#D4AF37] text-[#0a4d3c]'
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {posts?.length || 0}
-                </span>
-              </button>
+        {/* ✅ CATEGORY CHIPS ROW — Sirf Ek Category Filter */}
+        <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+          <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
+            {/* ✅ All Chip */}
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('')}
+              className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                selectedCategory === ''
+                  ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+              }`}
+            >
+              <LayoutGrid className={`w-3.5 h-3.5 ${selectedCategory === '' ? 'text-[#D4AF37]' : 'text-[#0a4d3c]'}`} />
+              <span>All</span>
+              <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                selectedCategory === ''
+                  ? 'bg-[#D4AF37] text-[#0a4d3c]'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+                {posts?.length || 0}
+              </span>
+            </button>
 
-              {/* Category Chips */}
-              {activeCategories.map((cat) => {
-                const isActive = selectedCategory === cat;
-                const count = categoryCounts[cat] || 0;
+            {/* ✅ Category Chips — Saari jinke ads hain */}
+            {activeCategories.map((cat) => {
+              const isActive = selectedCategory === cat;
+              const count = categoryCounts[cat] || 0;
 
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
-                    }`}
-                  >
-                    {/* ✅ Category Icon */}
-                    <span className={isActive ? 'text-[#D4AF37]' : 'text-[#0a4d3c]'}>
-                      {getCategoryIcon(cat, 'w-3.5 h-3.5')}
-                    </span>
-                    <span className='max-w-30 truncate'>{cat}</span>
-                    <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                      isActive
-                        ? 'bg-[#D4AF37] text-[#0a4d3c]'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+                  }`}
+                >
+                  <span className={isActive ? 'text-[#D4AF37]' : 'text-[#0a4d3c]'}>
+                    {getCategoryIcon(cat, 'w-3.5 h-3.5')}
+                  </span>
+                  <span className='max-w-30 truncate'>{cat}</span>
+                  <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    isActive
+                      ? 'bg-[#D4AF37] text-[#0a4d3c]'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {/* Total Products Stats Bar */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
@@ -482,7 +470,6 @@ export const Home = () => {
         </section>
       </main>
 
-      {/* ✅ BACK TO TOP */}
       <button
         type="button"
         onClick={scrollToTop}
