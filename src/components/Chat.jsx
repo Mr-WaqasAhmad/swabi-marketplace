@@ -143,7 +143,6 @@ export const Chat = () => {
   const messagesContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const typingChannelRef = useRef(null);
-  const presenceChannelRef = useRef(null);
 
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -189,7 +188,7 @@ export const Chat = () => {
     };
   }, [conversation?.id, queryClient, postId, user?.id]);
 
-  // ✅ Typing indicator — Supabase Broadcast
+  // ✅ Typing indicator — Broadcast
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
 
@@ -218,11 +217,11 @@ export const Chat = () => {
     };
   }, [conversation?.id, user?.id]);
 
-  // ✅ Presence — kaun online hai
+  // ✅ Presence — COMMON channel (conversation-based)
   useEffect(() => {
-    if (!otherUserId || !user?.id) return;
+    if (!conversation?.id || !user?.id) return;
 
-    const channel = supabase.channel(`presence-${otherUserId}`, {
+    const channel = supabase.channel(`presence-conv-${conversation.id}`, {
       config: {
         presence: {
           key: user.id,
@@ -233,10 +232,17 @@ export const Chat = () => {
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        const isOtherOnline = Object.values(state).some((arr) =>
-          arr.some((p) => p.user_id === otherUserId)
-        );
+        const allUsers = Object.values(state).flat();
+        const isOtherOnline = allUsers.some((p) => p.user_id === otherUserId);
         setOtherUserOnline(isOtherOnline);
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        const isOther = newPresences?.some((p) => p.user_id === otherUserId);
+        if (isOther) setOtherUserOnline(true);
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        const isOther = leftPresences?.some((p) => p.user_id === otherUserId);
+        if (isOther) setOtherUserOnline(false);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -247,13 +253,10 @@ export const Chat = () => {
         }
       });
 
-    presenceChannelRef.current = channel;
-
     return () => {
       supabase.removeChannel(channel);
-      presenceChannelRef.current = null;
     };
-  }, [otherUserId, user?.id]);
+  }, [conversation?.id, user?.id, otherUserId]);
 
   // ✅ Auto-scroll
   useEffect(() => {
@@ -443,7 +446,7 @@ export const Chat = () => {
     >
       <div className='max-w-3xl mx-auto w-full flex flex-col h-full px-2 sm:px-4 py-2'>
 
-        {/* ✅ Header with Online Status */}
+        {/* Header */}
         <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 shrink-0'>
           <button
             onClick={() => navigate('/messages')}
@@ -453,12 +456,12 @@ export const Chat = () => {
             <ArrowLeft className='w-4 h-4 text-gray-700' />
           </button>
 
-          {/* ✅ Avatar with online dot */}
           <div className='relative shrink-0'>
             <div className='w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-base'>
               {otherName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
             </div>
 
+            {/* Online dot */}
             <span
               className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white transition-colors ${
                 otherUserOnline ? 'bg-emerald-500' : 'bg-gray-400'
@@ -572,7 +575,6 @@ export const Chat = () => {
             ))
           )}
 
-          {/* ✅ Typing Indicator */}
           {otherUserTyping && (
             <div className='flex justify-start'>
               <div className='bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm'>
@@ -594,7 +596,6 @@ export const Chat = () => {
           </div>
         )}
 
-        {/* Input */}
         <form
           onSubmit={handleSend}
           className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm shrink-0 mb-2'
