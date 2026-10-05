@@ -23,8 +23,6 @@ const fetchConversationData = async (postId, userId) => {
   let otherUser = null;
 
   if (isUserSeller) {
-    // ✅ SELLER — apni ad pe aaya hai
-    // Sabse recent conversation dhoondein
     const { data: convs, error: convError } = await supabase
       .from('conversations')
       .select('*')
@@ -56,7 +54,6 @@ const fetchConversationData = async (postId, userId) => {
 
     otherUser = buyer;
   } else {
-    // ✅ BUYER — normal flow
     const { data: existing } = await supabase
       .from('conversations')
       .select('*')
@@ -91,7 +88,6 @@ const fetchConversationData = async (postId, userId) => {
     otherUser = seller;
   }
 
-  // Messages fetch
   const { data: messages, error: msgError } = await supabase
     .from('messages')
     .select('*')
@@ -176,6 +172,7 @@ export const Chat = () => {
         () => {
           queryClient.invalidateQueries(['chat', postId, user?.id]);
           queryClient.invalidateQueries(['conversations', user?.id]);
+          queryClient.invalidateQueries(['header-unread']);
         }
       )
       .subscribe();
@@ -192,7 +189,7 @@ export const Chat = () => {
     }
   }, [messages]);
 
-  // ✅ Mark messages as read (FIX — baar baar nahi chalega)
+  // ✅ Mark messages as read
   useEffect(() => {
     if (!conversation?.id || !user?.id || messages.length === 0) return;
 
@@ -200,10 +197,8 @@ export const Chat = () => {
     const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread';
     const currentUnread = conversation[unreadField] || 0;
 
-    // Agar unread 0 hai to kuch nahi karna
     if (currentUnread === 0) return;
 
-    // Check karein — koi unread message hai jo user ne nahi bheja
     const hasUnreadFromOther = messages.some(
       (m) => m.sender_id !== user.id && !m.is_read
     );
@@ -230,6 +225,7 @@ export const Chat = () => {
     markRead();
   }, [conversation?.id, conversation?.buyer_id, messages, user?.id, queryClient, conversation]);
 
+  // ✅ Send message — ATOMIC INCREMENT via RPC
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !conversation?.id || !user?.id) return;
@@ -238,6 +234,7 @@ export const Chat = () => {
     setError('');
 
     try {
+      // 1. Message insert
       const { error: sendError } = await supabase
         .from('messages')
         .insert([{
@@ -248,18 +245,22 @@ export const Chat = () => {
 
       if (sendError) throw sendError;
 
+      // 2. Update conversation metadata
       const isBuyer = user.id === conversation.buyer_id;
-      const otherUnreadField = isBuyer ? 'seller_unread' : 'buyer_unread';
-      const otherUnread = (isBuyer ? conversation.seller_unread : conversation.buyer_unread) || 0;
 
       await supabase
         .from('conversations')
         .update({
           last_message: newMessage.trim(),
           last_message_at: new Date().toISOString(),
-          [otherUnreadField]: otherUnread + 1,
         })
         .eq('id', conversation.id);
+
+      // 3. ✅ ATOMIC increment via RPC — no race condition
+      await supabase.rpc('increment_unread', {
+        conv_id: conversation.id,
+        is_buyer_side: isBuyer,
+      });
 
       setNewMessage('');
       queryClient.invalidateQueries(['chat', postId, user?.id]);
@@ -298,7 +299,6 @@ export const Chat = () => {
     );
   }
 
-  // ✅ Seller ne apni ad pe click kiya lekin koi conversation nahi
   if (isSellerNoConv) {
     return (
       <div className='min-h-screen flex flex-col items-center justify-center pt-16 bg-gray-50 gap-4 px-4'>
@@ -329,10 +329,13 @@ export const Chat = () => {
   const otherName = seller?.full_name || 'User';
 
   return (
-    <div className='w-full bg-gray-50 select-none flex flex-col' style={{ height: 'calc(100vh - 4rem)', marginTop: '4rem' }}>
+    <div
+      className='w-full bg-gray-50 select-none flex flex-col'
+      style={{ height: 'calc(100vh - 4rem)', marginTop: '4rem' }}
+    >
       <div className='max-w-3xl mx-auto w-full flex flex-col h-full px-2 sm:px-4 py-2'>
 
-        {/* ✅ Header */}
+        {/* Header */}
         <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 shrink-0'>
           <button
             onClick={() => navigate('/messages')}
@@ -356,7 +359,7 @@ export const Chat = () => {
           </div>
         </div>
 
-        {/* ✅ Product Context */}
+        {/* Product Context */}
         {post && (
           <Link
             to={`/singleproductdetails/${postId}`}
@@ -378,7 +381,7 @@ export const Chat = () => {
           </Link>
         )}
 
-        {/* ✅ Messages — SCROLLABLE */}
+        {/* Messages */}
         <div
           ref={messagesContainerRef}
           className='flex-1 bg-white border border-gray-200 border-t-0 overflow-y-auto px-3 sm:px-4 py-4 flex flex-col gap-3 min-h-0'
@@ -445,7 +448,7 @@ export const Chat = () => {
           </div>
         )}
 
-        {/* ✅ Input — Upar utha diya, extra padding */}
+        {/* Input */}
         <form
           onSubmit={handleSend}
           className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm shrink-0 mb-2'
