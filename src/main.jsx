@@ -22,8 +22,9 @@ const Terms = lazy(() => import('./components/Terms.jsx').then(m => ({ default: 
 const UserPost = lazy(() => import('./components/UserPost.jsx').then(m => ({ default: m.UserPost })))
 const UserProfile = lazy(() => import('./components/UserProfile.jsx').then(m => ({ default: m.UserProfile })))
 const SellerProfile = lazy(() => import('./components/SellerProfile.jsx').then(m => ({ default: m.SellerProfile })))
+const Chat = lazy(() => import('./components/Chat.jsx').then(m => ({ default: m.Chat })))  // ✅ NAYA
 
-// ✅ LOADING COMPONENT (jab page load ho raha ho)
+// ✅ LOADING COMPONENT
 const PageLoader = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
     <div className="w-16 h-16 border-4 border-[#0a4d3c] border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -155,6 +156,15 @@ const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <SellerProfile />
+              </Suspense>
+            )
+          },
+          // ✅ CHAT ROUTE (NAYA)
+          {
+            path: "chat/:postId/:sellerId",
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <Chat />
               </Suspense>
             )
           },
