@@ -4,12 +4,10 @@ import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star, ArrowUp } from 'lu
 import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
-import { CategorySelector } from './CategorySelector';
+import { CategorySelector, categories, getCategoryIcon } from './CategorySelector';
 import { SEO } from './SEO';
 
-// ✅ Posts + Ratings fetch karein
 const fetchPostsFromSupabase = async () => {
-  // Step 1: Posts fetch karein
   const { data: postsData, error: postsError } = await supabase
     .from('posts')
     .select('*')
@@ -19,7 +17,6 @@ const fetchPostsFromSupabase = async () => {
   if (postsError) throw new Error(postsError.message);
   if (!postsData || postsData.length === 0) return [];
 
-  // Step 2: Saari ratings fetch karein
   const postIds = postsData.map((p) => p.id);
 
   const { data: ratingsData, error: ratingsError } = await supabase
@@ -29,7 +26,6 @@ const fetchPostsFromSupabase = async () => {
 
   if (ratingsError) console.warn('Ratings fetch warning:', ratingsError.message);
 
-  // Step 3: Post-wise average calculate karein
   const ratingsMap = {};
   (ratingsData || []).forEach((r) => {
     if (!ratingsMap[r.post_id]) {
@@ -39,7 +35,6 @@ const fetchPostsFromSupabase = async () => {
     ratingsMap[r.post_id].count += 1;
   });
 
-  // Step 4: Posts mein average add karein
   return postsData.map((post) => {
     const stats = ratingsMap[post.id];
     return {
@@ -57,7 +52,6 @@ export const Home = () => {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // ✅ Scroll listener — Back to Top dikhayein
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 400) {
@@ -92,6 +86,12 @@ export const Home = () => {
       return acc;
     }, {});
   }, [posts]);
+
+  // ✅ Active Categories — sirf jinme ads hain
+  const activeCategories = useMemo(() => {
+    if (!posts) return [];
+    return categories.filter((cat) => (categoryCounts[cat] || 0) > 0);
+  }, [posts, categoryCounts]);
 
   // ✅ "New" badge
   const isNewProduct = (createdAt) => {
@@ -133,7 +133,7 @@ export const Home = () => {
     return `${diffInYears} years ago`;
   };
 
-  // ✅ Filter + Sort Logic
+  // ✅ Filter + Sort
   const filteredPosts = useMemo(() => {
     if (!posts) return [];
 
@@ -244,6 +244,65 @@ export const Home = () => {
           </div>
         </section>
 
+        {/* ✅ CATEGORY CHIPS ROW */}
+        {activeCategories.length > 0 && (
+          <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+            <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
+              {/* All Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('')}
+                className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                  selectedCategory === ''
+                    ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+                }`}
+              >
+                <span>All</span>
+                <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  selectedCategory === ''
+                    ? 'bg-[#D4AF37] text-[#0a4d3c]'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  {posts?.length || 0}
+                </span>
+              </button>
+
+              {/* Category Chips */}
+              {activeCategories.map((cat) => {
+                const isActive = selectedCategory === cat;
+                const count = categoryCounts[cat] || 0;
+
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+                    }`}
+                  >
+                    {/* ✅ Category Icon */}
+                    <span className={isActive ? 'text-[#D4AF37]' : 'text-[#0a4d3c]'}>
+                      {getCategoryIcon(cat, 'w-3.5 h-3.5')}
+                    </span>
+                    <span className='max-w-30 truncate'>{cat}</span>
+                    <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                      isActive
+                        ? 'bg-[#D4AF37] text-[#0a4d3c]'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Total Products Stats Bar */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
           <div className='flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-2.5 shadow-sm'>
@@ -346,7 +405,6 @@ export const Home = () => {
                       className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
                     />
 
-                    {/* ✅ NEW Badge - Top Left */}
                     {isNewProduct(product.created_at) && (
                       <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1 z-10'>
                         <span className='w-1.5 h-1.5 rounded-full bg-white animate-pulse'></span>
@@ -354,13 +412,11 @@ export const Home = () => {
                       </div>
                     )}
 
-                    {/* ✅ Views Badge - Top Right */}
                     <div className='absolute top-2 right-2 bg-white/95 backdrop-blur-sm text-gray-700 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold shadow-md flex items-center gap-1 z-10 border border-gray-200'>
                       <Eye className='w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0a4d3c]' aria-hidden="true" />
                       <span>{product.views || 0}</span>
                     </div>
 
-                    {/* Watermark - Bottom Right */}
                     <div className='absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
                       <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
                       Swabi Market
@@ -383,7 +439,6 @@ export const Home = () => {
                         PKR {Number(product.price)?.toLocaleString()}
                       </p>
 
-                      {/* ✅ Average Rating */}
                       {product.totalRatings > 0 && (
                         <div className='flex items-center gap-1 mt-0.5'>
                           <Star className='w-3 h-3 fill-[#D4AF37] text-[#D4AF37] shrink-0' aria-hidden="true" />
@@ -398,7 +453,6 @@ export const Home = () => {
                     </div>
 
                     <div className='flex flex-col gap-1.5 pt-1.5 border-t border-gray-100 mt-1'>
-                      {/* ✅ Location + Product Age */}
                       <div className='flex items-center justify-between gap-1 text-gray-500 text-[10px] sm:text-xs'>
                         <div className='flex items-center gap-1 truncate'>
                           <MapPin className='w-3 h-3 text-red-500 shrink-0' aria-hidden="true" />
@@ -428,7 +482,7 @@ export const Home = () => {
         </section>
       </main>
 
-      {/* ✅ BACK TO TOP BUTTON */}
+      {/* ✅ BACK TO TOP */}
       <button
         type="button"
         onClick={scrollToTop}
