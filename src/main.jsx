@@ -171,7 +171,7 @@ const router = createBrowserRouter([
           },
           // ✅ CHAT ROUTE
           {
-            path: "chat/:postId/:sellerId",
+            path: "chat/:postId",
             element: (
               <Suspense fallback={<PageLoader />}>
                 <Chat />
