@@ -5,9 +5,8 @@ import { ArrowLeft, Send, Loader2, User2, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
-// ✅ Conversation + messages fetch — CORRECT LOGIC
+// ✅ Conversation + messages fetch
 const fetchConversationData = async (postId, userId) => {
-  // 1. Post fetch
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select('id, title, price, image_url, user_id')
@@ -18,20 +17,14 @@ const fetchConversationData = async (postId, userId) => {
   if (!post) throw new Error('Post not found');
 
   const postOwnerId = post.user_id;
-
-  // ✅ 2. CHECK: User buyer hai ya seller?
-  // Agar user = post owner (seller), to uska koi conversation iss post pe dhoondein
-  // Agar user ≠ post owner (buyer), to normal conversation banao
+  const isUserSeller = userId === postOwnerId;
 
   let conversation = null;
   let otherUser = null;
-  let isUserSeller = false;
 
-  if (userId === postOwnerId) {
-    // ✅ User SELLER hai — apni post pe click kiya
-    // Sabse recent conversation dhoondein iss post pe (jis mein seller = user)
-    isUserSeller = true;
-
+  if (isUserSeller) {
+    // ✅ SELLER — apni ad pe aaya hai
+    // Sabse recent conversation dhoondein
     const { data: convs, error: convError } = await supabase
       .from('conversations')
       .select('*')
@@ -43,20 +36,18 @@ const fetchConversationData = async (postId, userId) => {
     if (convError) throw new Error(convError.message);
 
     if (!convs || convs.length === 0) {
-      // Koi conversation nahi — seller ko wait karna hoga
       return {
         post,
         seller: null,
         conversation: null,
         messages: [],
-        isSelf: false,
+        isUserSeller: true,
         isSellerNoConv: true,
       };
     }
 
     conversation = convs[0];
 
-    // Buyer ka profile
     const { data: buyer } = await supabase
       .from('profiles')
       .select('id, full_name')
@@ -65,18 +56,14 @@ const fetchConversationData = async (postId, userId) => {
 
     otherUser = buyer;
   } else {
-    // ✅ User BUYER hai — normal flow
-    const { data: existing, error: findError } = await supabase
+    // ✅ BUYER — normal flow
+    const { data: existing } = await supabase
       .from('conversations')
       .select('*')
       .eq('post_id', postId)
       .eq('buyer_id', userId)
       .eq('seller_id', postOwnerId)
       .maybeSingle();
-
-    if (findError && findError.code !== 'PGRST116') {
-      throw new Error(findError.message);
-    }
 
     conversation = existing;
 
@@ -95,7 +82,6 @@ const fetchConversationData = async (postId, userId) => {
       conversation = newConv;
     }
 
-    // Seller ka profile
     const { data: seller } = await supabase
       .from('profiles')
       .select('id, full_name')
@@ -105,7 +91,7 @@ const fetchConversationData = async (postId, userId) => {
     otherUser = seller;
   }
 
-  // 3. Messages fetch
+  // Messages fetch
   const { data: messages, error: msgError } = await supabase
     .from('messages')
     .select('*')
@@ -119,8 +105,8 @@ const fetchConversationData = async (postId, userId) => {
     seller: otherUser,
     conversation,
     messages: messages || [],
-    isSelf: false,
     isUserSeller,
+    isSellerNoConv: false,
   };
 };
 
@@ -153,24 +139,25 @@ const formatDate = (dateString) => {
 };
 
 export const Chat = () => {
-  const { postId } = useParams();  // ✅ Sirf postId
+  const { postId } = useParams();
   const { user } = useUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['chat', postId, user?.id],  // ✅ Simple key
+    queryKey: ['chat', postId, user?.id],
     queryFn: () => fetchConversationData(postId, user.id),
     enabled: !!postId && !!user?.id,
     staleTime: 0,
     refetchOnWindowFocus: false,
   });
 
-  const { conversation, messages = [], post, seller, isSelf } = data || {};
+  const { conversation, messages = [], post, seller, isSellerNoConv } = data || {};
 
   // ✅ Realtime — naye messages
   useEffect(() => {
@@ -188,6 +175,7 @@ export const Chat = () => {
         },
         () => {
           queryClient.invalidateQueries(['chat', postId, user?.id]);
+          queryClient.invalidateQueries(['conversations', user?.id]);
         }
       )
       .subscribe();
@@ -197,38 +185,51 @@ export const Chat = () => {
     };
   }, [conversation?.id, queryClient, postId, user?.id]);
 
-  // ✅ Auto-scroll
+  // ✅ Auto-scroll to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // ✅ Mark as read
+  // ✅ Mark messages as read (FIX — baar baar nahi chalega)
   useEffect(() => {
-    if (!conversation?.id || !user?.id) return;
+    if (!conversation?.id || !user?.id || messages.length === 0) return;
+
+    const isBuyer = user.id === conversation.buyer_id;
+    const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread';
+    const currentUnread = conversation[unreadField] || 0;
+
+    // Agar unread 0 hai to kuch nahi karna
+    if (currentUnread === 0) return;
+
+    // Check karein — koi unread message hai jo user ne nahi bheja
+    const hasUnreadFromOther = messages.some(
+      (m) => m.sender_id !== user.id && !m.is_read
+    );
+
+    if (!hasUnreadFromOther) return;
 
     const markRead = async () => {
-      const isBuyer = user.id === conversation.buyer_id;
-
       await supabase
         .from('messages')
         .update({ is_read: true })
         .eq('conversation_id', conversation.id)
-        .neq('sender_id', user.id);
+        .neq('sender_id', user.id)
+        .eq('is_read', false);
 
       await supabase
         .from('conversations')
-        .update({ [isBuyer ? 'buyer_unread' : 'seller_unread']: 0 })
+        .update({ [unreadField]: 0 })
         .eq('id', conversation.id);
 
       queryClient.invalidateQueries(['conversations', user?.id]);
+      queryClient.invalidateQueries(['header-unread']);
     };
 
     markRead();
-  }, [conversation?.id, conversation?.buyer_id, user?.id, queryClient]);
+  }, [conversation?.id, conversation?.buyer_id, messages, user?.id, queryClient, conversation]);
 
-  // ✅ Send message
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !conversation?.id || !user?.id) return;
@@ -247,15 +248,16 @@ export const Chat = () => {
 
       if (sendError) throw sendError;
 
-      // Update conversation metadata
       const isBuyer = user.id === conversation.buyer_id;
+      const otherUnreadField = isBuyer ? 'seller_unread' : 'buyer_unread';
+      const otherUnread = (isBuyer ? conversation.seller_unread : conversation.buyer_unread) || 0;
+
       await supabase
         .from('conversations')
         .update({
           last_message: newMessage.trim(),
           last_message_at: new Date().toISOString(),
-          [isBuyer ? 'seller_unread' : 'buyer_unread']:
-            (isBuyer ? conversation.seller_unread : conversation.buyer_unread) + 1,
+          [otherUnreadField]: otherUnread + 1,
         })
         .eq('id', conversation.id);
 
@@ -285,7 +287,6 @@ export const Chat = () => {
       <div className='min-h-screen flex flex-col items-center justify-center pt-16 bg-gray-50 gap-4 px-4'>
         <div className='bg-red-50 border border-red-200 rounded-2xl p-6 max-w-md text-center'>
           <p className='text-red-700 font-bold mb-2'>Chat load nahi hui!</p>
-          <p className='text-xs text-red-600'>Please try again.</p>
         </div>
         <button
           onClick={() => navigate(-1)}
@@ -297,20 +298,23 @@ export const Chat = () => {
     );
   }
 
-  // ❌ Self chat
-  if (isSelf) {
+  // ✅ Seller ne apni ad pe click kiya lekin koi conversation nahi
+  if (isSellerNoConv) {
     return (
       <div className='min-h-screen flex flex-col items-center justify-center pt-16 bg-gray-50 gap-4 px-4'>
-        <div className='bg-amber-50 border border-amber-200 rounded-2xl p-6 max-w-md text-center'>
-          <p className='text-amber-700 font-bold mb-2'>Ye aap ki apni ad hai!</p>
-          <p className='text-xs text-amber-600'>Aap khud ko message nahi kar sakte.</p>
+        <div className='bg-[#effffb] border border-emerald-200 rounded-2xl p-6 max-w-md text-center'>
+          <MessageCircle className='w-10 h-10 text-[#0a4d3c] mx-auto mb-3' />
+          <p className='text-gray-800 font-bold mb-2'>Abhi koi message nahi aaya</p>
+          <p className='text-xs text-gray-600 mb-4'>
+            Jab koi buyer iss ad pe message karega, to yahan dikhega.
+          </p>
+          <Link
+            to="/messages"
+            className='inline-flex items-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all'
+          >
+            <span>All Messages</span>
+          </Link>
         </div>
-        <button
-          onClick={() => navigate(-1)}
-          className='text-[#0a4d3c] font-semibold text-sm hover:underline'
-        >
-          ← Back
-        </button>
       </div>
     );
   }
@@ -322,29 +326,29 @@ export const Chat = () => {
     return groups;
   }, {});
 
-  const sellerName = seller?.full_name || 'Seller';
+  const otherName = seller?.full_name || 'User';
 
   return (
-    <div className='w-full min-h-screen bg-gray-50 pt-16 pb-2 select-none flex flex-col'>
-      <div className='max-w-3xl mx-auto w-full flex flex-col h-[calc(100vh-4rem)] px-2 sm:px-4'>
+    <div className='w-full bg-gray-50 select-none flex flex-col' style={{ height: 'calc(100vh - 4rem)', marginTop: '4rem' }}>
+      <div className='max-w-3xl mx-auto w-full flex flex-col h-full px-2 sm:px-4 py-2'>
 
-        {/* Header */}
-        <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3'>
-          <Link
-            to={`/singleproductdetails/${postId}`}
+        {/* ✅ Header */}
+        <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 shrink-0'>
+          <button
+            onClick={() => navigate('/messages')}
             className='p-2 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer shrink-0'
             aria-label='Back'
           >
             <ArrowLeft className='w-4 h-4 text-gray-700' />
-          </Link>
+          </button>
 
           <div className='w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-base shrink-0'>
-            {sellerName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
+            {otherName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
           </div>
 
           <div className='flex-1 min-w-0'>
             <h1 className='font-bold text-gray-800 text-sm sm:text-base truncate'>
-              {sellerName}
+              {otherName}
             </h1>
             <p className='text-[10px] sm:text-xs text-gray-500 truncate'>
               Re: {post?.title || 'Product'}
@@ -352,11 +356,11 @@ export const Chat = () => {
           </div>
         </div>
 
-        {/* Product Context */}
+        {/* ✅ Product Context */}
         {post && (
           <Link
             to={`/singleproductdetails/${postId}`}
-            className='bg-[#effffb] border border-emerald-100 border-t-0 px-3 sm:px-4 py-2 flex items-center gap-2.5 hover:bg-[#dffff5] transition-colors'
+            className='bg-[#effffb] border border-emerald-100 border-t-0 px-3 sm:px-4 py-2 flex items-center gap-2.5 hover:bg-[#dffff5] transition-colors shrink-0'
           >
             <img
               src={post.image_url}
@@ -374,8 +378,11 @@ export const Chat = () => {
           </Link>
         )}
 
-        {/* Messages */}
-        <div className='flex-1 bg-white border border-gray-200 border-t-0 overflow-y-auto px-3 sm:px-4 py-4 flex flex-col gap-3'>
+        {/* ✅ Messages — SCROLLABLE */}
+        <div
+          ref={messagesContainerRef}
+          className='flex-1 bg-white border border-gray-200 border-t-0 overflow-y-auto px-3 sm:px-4 py-4 flex flex-col gap-3 min-h-0'
+        >
           {messages.length === 0 ? (
             <div className='flex-1 flex flex-col items-center justify-center text-center px-4'>
               <div className='w-16 h-16 rounded-full bg-[#effffb] flex items-center justify-center mb-3'>
@@ -383,7 +390,7 @@ export const Chat = () => {
               </div>
               <p className='text-sm font-bold text-gray-700 mb-1'>Chat shuru karein</p>
               <p className='text-xs text-gray-500 max-w-xs'>
-                {sellerName} ko apna sawaal bhejein.
+                {otherName} ko apna sawaal bhejein.
               </p>
             </div>
           ) : (
@@ -433,15 +440,15 @@ export const Chat = () => {
         </div>
 
         {error && (
-          <div className='bg-red-50 border border-red-200 border-t-0 px-3 py-2 text-red-700 text-xs font-medium'>
+          <div className='bg-red-50 border border-red-200 border-t-0 px-3 py-2 text-red-700 text-xs font-medium shrink-0'>
             {error}
           </div>
         )}
 
-        {/* Input */}
+        {/* ✅ Input — Upar utha diya, extra padding */}
         <form
           onSubmit={handleSend}
-          className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm'
+          className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm shrink-0 mb-2'
         >
           <textarea
             value={newMessage}
