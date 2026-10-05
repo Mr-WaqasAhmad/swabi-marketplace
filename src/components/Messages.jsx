@@ -6,7 +6,6 @@ import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 import { SEO } from './SEO';
 
-// ✅ Time ago
 const getTimeAgo = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -24,7 +23,6 @@ const getTimeAgo = (dateString) => {
   return date.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
 };
 
-// ✅ Conversations fetch
 const fetchConversations = async (userId) => {
   const { data: convs, error: convError } = await supabase
     .from('conversations')
@@ -85,11 +83,11 @@ export const Messages = () => {
     queryKey: ['conversations', user?.id],
     queryFn: () => fetchConversations(user.id),
     enabled: !!user?.id,
-    staleTime: 1000 * 30,
+    staleTime: 1000 * 60 * 2,
     refetchOnWindowFocus: true,
   });
 
-  // ✅ Realtime — conversations update
+  // ✅ Realtime — naye messages pe update (light)
   useEffect(() => {
     if (!user?.id) return;
 
@@ -100,7 +98,6 @@ export const Messages = () => {
         { event: '*', schema: 'public', table: 'conversations' },
         () => {
           queryClient.invalidateQueries(['conversations', user.id]);
-          queryClient.invalidateQueries(['header-unread']);
         }
       )
       .subscribe();
@@ -110,69 +107,42 @@ export const Messages = () => {
     };
   }, [user?.id, queryClient]);
 
-  // ✅ Presence — COMMON channel per conversation
+  // ✅ Presence — 1 single channel, sab ke liye
   useEffect(() => {
-    if (!user?.id || !conversations || conversations.length === 0) return;
+    if (!user?.id) return;
 
-    const channels = conversations.map((conv) => {
-      const channel = supabase.channel(`presence-conv-${conv.id}`, {
-        config: {
-          presence: {
-            key: user.id,
-          },
-        },
-      });
-
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          const state = channel.presenceState();
-          const allUsers = Object.values(state).flat();
-          const isOtherOnline = allUsers.some((p) => p.user_id === conv.other_user_id);
-
-          setOnlineUsers((prev) => {
-            const newSet = new Set(prev);
-            if (isOtherOnline) {
-              newSet.add(conv.other_user_id);
-            } else {
-              newSet.delete(conv.other_user_id);
-            }
-            return newSet;
-          });
-        })
-        .on('presence', { event: 'join' }, ({ newPresences }) => {
-          const isOther = newPresences?.some((p) => p.user_id === conv.other_user_id);
-          if (isOther) {
-            setOnlineUsers((prev) => new Set([...prev, conv.other_user_id]));
-          }
-        })
-        .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-          const isOther = leftPresences?.some((p) => p.user_id === conv.other_user_id);
-          if (isOther) {
-            setOnlineUsers((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(conv.other_user_id);
-              return newSet;
-            });
-          }
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await channel.track({
-              user_id: user.id,
-              online_at: new Date().toISOString(),
-            });
-          }
-        });
-
-      return channel;
+    const channel = supabase.channel('online-users', {
+      config: {
+        presence: { key: user.id },
+      },
     });
 
-    return () => {
-      channels.forEach((ch) => supabase.removeChannel(ch));
-    };
-  }, [user?.id, conversations]);
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const allUsers = Object.values(state).flat();
+        const onlineSet = new Set();
+        allUsers.forEach((u) => {
+          if (u.user_id && u.user_id !== user.id) {
+            onlineSet.add(u.user_id);
+          }
+        });
+        setOnlineUsers(onlineSet);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
 
-  // ✅ Delete mutation
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const deleteConversationMutation = useMutation({
     mutationFn: async (conversationId) => {
       const { error: msgError } = await supabase
@@ -302,7 +272,7 @@ export const Messages = () => {
                 return (
                   <div
                     key={conv.id}
-                    className={`relative flex items-center gap-3 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all ${
+                    className={`relative flex items-center gap-3 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-shadow ${
                       hasUnread ? 'border-[#0a4d3c]/30 bg-[#effffb]/30' : 'border-gray-200'
                     } ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
                   >
@@ -315,16 +285,11 @@ export const Messages = () => {
                           {initial}
                         </div>
 
-                        {/* ✅ Online dot */}
                         <span
-                          className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white transition-colors ${
+                          className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
                             isOnline ? 'bg-emerald-500' : 'bg-gray-400'
                           }`}
-                        >
-                          {isOnline && (
-                            <span className='absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75'></span>
-                          )}
-                        </span>
+                        />
 
                         {hasUnread && (
                           <span className='absolute -top-0.5 -left-0.5 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white'>
@@ -370,6 +335,7 @@ export const Messages = () => {
                           src={conv.post.image_url}
                           alt={conv.post.title}
                           className='w-12 h-12 rounded-xl object-cover border border-gray-200 shrink-0 hidden sm:block'
+                          loading='lazy'
                         />
                       )}
                     </Link>
@@ -378,7 +344,7 @@ export const Messages = () => {
                       type='button'
                       onClick={(e) => handleDelete(e, conv.id, otherName)}
                       disabled={isDeleting}
-                      className='shrink-0 mr-2 sm:mr-3 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer disabled:opacity-50'
+                      className='shrink-0 mr-2 sm:mr-3 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer disabled:opacity-50'
                       aria-label='Delete chat'
                       title='Delete chat'
                     >
