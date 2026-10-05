@@ -5,7 +5,7 @@ import { ArrowLeft, Send, Loader2, User2, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
-// ✅ Conversation + messages fetch
+// ✅ Conversation + messages fetch (same as before)
 const fetchConversationData = async (postId, userId) => {
   const { data: post, error: postError } = await supabase
     .from('posts')
@@ -141,9 +141,13 @@ export const Chat = () => {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+  const channelRef = useRef(null);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [otherTypingName, setOtherTypingName] = useState('');
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['chat', postId, user?.id],
@@ -182,12 +186,85 @@ export const Chat = () => {
     };
   }, [conversation?.id, queryClient, postId, user?.id]);
 
-  // ✅ Auto-scroll to bottom
+  // ✅ Typing indicator — Supabase Broadcast channel
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+
+    const channel = supabase.channel(`typing-${conversation.id}`, {
+      config: {
+        broadcast: { self: false },
+      },
+    });
+
+    channel
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.user_id === user.id) return;
+
+        setOtherTypingName(payload.payload.name || 'User');
+        setOtherUserTyping(true);
+      })
+      .on('broadcast', { event: 'stop-typing' }, (payload) => {
+        if (payload.payload.user_id === user.id) return;
+
+        setOtherUserTyping(false);
+      })
+      .subscribe();
+
+    channelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      channelRef.current = null;
+    };
+  }, [conversation?.id, user?.id]);
+
+  // ✅ User type kare — broadcast karein
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    if (!channelRef.current || !user?.id) return;
+
+    const userName =
+      user?.full_name ||
+      user?.user_metadata?.full_name ||
+      'Someone';
+
+    // Typing broadcast
+    if (value.trim().length > 0) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: {
+          user_id: user.id,
+          name: userName,
+        },
+      });
+    }
+
+    // Purana timeout clear
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // 2 second baad typing stop broadcast
+    typingTimeoutRef.current = setTimeout(() => {
+      if (channelRef.current && user?.id) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'stop-typing',
+          payload: { user_id: user.id },
+        });
+      }
+    }, 2000);
+  };
+
+  // ✅ Auto-scroll
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, otherUserTyping]);
 
   // ✅ Mark messages as read
   useEffect(() => {
@@ -225,7 +302,7 @@ export const Chat = () => {
     markRead();
   }, [conversation?.id, conversation?.buyer_id, messages, user?.id, queryClient, conversation]);
 
-  // ✅ Send message — ATOMIC INCREMENT via RPC
+  // ✅ Send message
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !conversation?.id || !user?.id) return;
@@ -234,7 +311,15 @@ export const Chat = () => {
     setError('');
 
     try {
-      // 1. Message insert
+      // Stop typing broadcast
+      if (channelRef.current) {
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'stop-typing',
+          payload: { user_id: user.id },
+        });
+      }
+
       const { error: sendError } = await supabase
         .from('messages')
         .insert([{
@@ -245,7 +330,6 @@ export const Chat = () => {
 
       if (sendError) throw sendError;
 
-      // 2. Update conversation metadata
       const isBuyer = user.id === conversation.buyer_id;
 
       await supabase
@@ -256,7 +340,6 @@ export const Chat = () => {
         })
         .eq('id', conversation.id);
 
-      // 3. ✅ ATOMIC increment via RPC — no race condition
       await supabase.rpc('increment_unread', {
         conv_id: conversation.id,
         is_buyer_side: isBuyer,
@@ -439,6 +522,20 @@ export const Chat = () => {
               </div>
             ))
           )}
+
+          {/* ✅ Typing Indicator */}
+          {otherUserTyping && (
+            <div className='flex justify-start'>
+              <div className='bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm'>
+                <div className='flex items-center gap-1.5'>
+                  <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '0ms' }}></div>
+                  <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '150ms' }}></div>
+                  <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -455,7 +552,7 @@ export const Chat = () => {
         >
           <textarea
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             placeholder='Message likhein...'
             rows='1'
             maxLength={1000}
