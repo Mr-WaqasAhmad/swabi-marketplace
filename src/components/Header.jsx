@@ -30,12 +30,14 @@ export const Header = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ✅ Unread messages count fetch
+  // ✅ Unread count — sirf initial fetch, koi realtime nahi
   useEffect(() => {
     if (!user?.id) {
       setUnreadCount(0);
       return;
     }
+
+    let isMounted = true;
 
     const fetchUnread = async () => {
       try {
@@ -44,41 +46,27 @@ export const Header = () => {
           .select('buyer_id, seller_id, buyer_unread, seller_unread')
           .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
 
-        if (error) {
-          console.warn('Unread fetch warning:', error.message);
-          return;
-        }
+        if (error || !isMounted) return;
 
         const total = (convs || []).reduce((sum, c) => {
           const isBuyer = c.buyer_id === user.id;
           return sum + (isBuyer ? (c.buyer_unread || 0) : (c.seller_unread || 0));
         }, 0);
 
-        setUnreadCount(total);
+        if (isMounted) setUnreadCount(total);
       } catch (err) {
-        console.warn('Unread error:', err);
+        // silent
       }
     };
 
     fetchUnread();
 
-    const channel = supabase
-      .channel('header-unread')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => {
-          fetchUnread();
-        }
-      )
-      .subscribe();
+    // ✅ Periodic refresh — har 30 sec (realtime ke bajaye)
+    const interval = setInterval(fetchUnread, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      clearInterval(interval);
     };
   }, [user?.id]);
 
@@ -91,12 +79,11 @@ export const Header = () => {
 
       {/* Desktop Navigation */}
       <div className="hidden md:flex items-center gap-2 sm:gap-3">
-        {/* ✅ Messages Bell (Desktop) */}
         {user && (
           <Link
             to="/messages"
             aria-label="Messages"
-            className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[#effffb] transition-all cursor-pointer"
+            className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[#effffb] transition-colors cursor-pointer"
           >
             <MessageCircle className="w-5 h-5 text-gray-700" />
             {unreadCount > 0 && (
@@ -110,14 +97,13 @@ export const Header = () => {
         <NavLinks />
       </div>
 
-      {/* ✅ Mobile Icons (Bell + Hamburger) */}
+      {/* Mobile Icons */}
       <div className="md:hidden flex items-center gap-1">
-        {/* Messages Bell (Mobile) */}
         {user && (
           <Link
             to="/messages"
             aria-label="Messages"
-            className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[#effffb] transition-all cursor-pointer"
+            className="relative flex items-center justify-center w-10 h-10 rounded-xl hover:bg-[#effffb] transition-colors cursor-pointer"
           >
             <MessageCircle className="w-5 h-5 text-gray-700" />
             {unreadCount > 0 && (
@@ -128,7 +114,6 @@ export const Header = () => {
           </Link>
         )}
 
-        {/* Hamburger */}
         <button
           type="button"
           id="mobile-menu-button"
@@ -144,7 +129,6 @@ export const Header = () => {
         </button>
       </div>
 
-      {/* Mobile Drawer */}
       <MobileNavLinks isOpened={isOpened} setIsOpened={setIsOpened} />
     </header>
   )
