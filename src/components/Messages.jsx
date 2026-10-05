@@ -67,6 +67,7 @@ const fetchConversations = async (userId) => {
     return {
       ...c,
       other_user: profilesMap[otherId] || { full_name: 'User' },
+      other_user_id: otherId,
       post: postsMap[c.post_id] || null,
       unread_count: unread || 0,
       is_buyer: isBuyer,
@@ -78,6 +79,7 @@ export const Messages = () => {
   const { user } = useUser();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   const { data: conversations, isLoading, isError } = useQuery({
     queryKey: ['conversations', user?.id],
@@ -87,7 +89,7 @@ export const Messages = () => {
     refetchOnWindowFocus: true,
   });
 
-  // ✅ Realtime
+  // ✅ Realtime — conversations update
   useEffect(() => {
     if (!user?.id) return;
 
@@ -108,10 +110,65 @@ export const Messages = () => {
     };
   }, [user?.id, queryClient]);
 
+  // ✅ Presence — kaun online hai
+  useEffect(() => {
+    if (!user?.id || !conversations || conversations.length === 0) return;
+
+    // Saare other user IDs
+    const otherUserIds = conversations.map((c) => c.other_user_id);
+
+    if (otherUserIds.length === 0) return;
+
+    // Har user ke liye presence channel join karein
+    const channels = otherUserIds.map((otherId) => {
+      const channel = supabase.channel(`presence-${otherId}`, {
+        config: {
+          presence: {
+            key: user.id,
+          },
+        },
+      });
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          const isOnline = Object.keys(state).length > 1; // khud + dusra
+
+          // Agar doosra user present hai
+          const otherUserPresent = Object.values(state).some((arr) =>
+            arr.some((p) => p.user_id === otherId)
+          );
+
+          setOnlineUsers((prev) => {
+            const newSet = new Set(prev);
+            if (otherUserPresent) {
+              newSet.add(otherId);
+            } else {
+              newSet.delete(otherId);
+            }
+            return newSet;
+          });
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              user_id: user.id,
+              online_at: new Date().toISOString(),
+            });
+          }
+        });
+
+      return channel;
+    });
+
+    return () => {
+      channels.forEach((ch) => supabase.removeChannel(ch));
+    };
+  }, [user?.id, conversations]);
+
   // ✅ Delete mutation
   const deleteConversationMutation = useMutation({
     mutationFn: async (conversationId) => {
-      // 1. Messages delete
       const { error: msgError } = await supabase
         .from('messages')
         .delete()
@@ -119,7 +176,6 @@ export const Messages = () => {
 
       if (msgError) throw new Error(msgError.message);
 
-      // 2. Conversation delete
       const { error: convError } = await supabase
         .from('conversations')
         .delete()
@@ -237,6 +293,7 @@ export const Messages = () => {
                 const initial = otherName.trim()[0]?.toUpperCase() || 'U';
                 const hasUnread = conv.unread_count > 0;
                 const isDeleting = deletingId === conv.id;
+                const isOnline = onlineUsers.has(conv.other_user_id);
 
                 return (
                   <div
@@ -250,13 +307,25 @@ export const Messages = () => {
                       to={`/chat/${conv.post_id}`}
                       className='flex items-center gap-3 p-3 sm:p-4 flex-1 min-w-0 cursor-pointer'
                     >
-                      {/* Avatar */}
+                      {/* ✅ Avatar with Online Status */}
                       <div className='relative shrink-0'>
                         <div className='w-12 h-12 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-lg'>
                           {initial}
                         </div>
+
+                        {/* ✅ Online Dot */}
+                        <span
+                          className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white transition-colors ${
+                            isOnline ? 'bg-emerald-500' : 'bg-gray-400'
+                          }`}
+                        >
+                          {isOnline && (
+                            <span className='absolute inset-0 rounded-full bg-emerald-500 animate-ping opacity-75'></span>
+                          )}
+                        </span>
+
                         {hasUnread && (
-                          <span className='absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white'>
+                          <span className='absolute -top-0.5 -left-0.5 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white'>
                             {conv.unread_count > 99 ? '99+' : conv.unread_count}
                           </span>
                         )}
@@ -265,11 +334,19 @@ export const Messages = () => {
                       {/* Content */}
                       <div className='flex-1 min-w-0'>
                         <div className='flex items-center justify-between gap-2 mb-0.5'>
-                          <h3 className={`text-sm sm:text-base font-bold truncate ${
-                            hasUnread ? 'text-gray-900' : 'text-gray-800'
-                          }`}>
-                            {otherName}
-                          </h3>
+                          <div className='flex items-center gap-1.5 min-w-0'>
+                            <h3 className={`text-sm sm:text-base font-bold truncate ${
+                              hasUnread ? 'text-gray-900' : 'text-gray-800'
+                            }`}>
+                              {otherName}
+                            </h3>
+                            {/* ✅ Online Badge */}
+                            {isOnline && (
+                              <span className='text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0'>
+                                Online
+                              </span>
+                            )}
+                          </div>
                           <span className='text-[10px] sm:text-xs text-gray-400 font-medium shrink-0'>
                             {getTimeAgo(conv.last_message_at)}
                           </span>
@@ -298,7 +375,7 @@ export const Messages = () => {
                       )}
                     </Link>
 
-                    {/* ✅ Delete Button */}
+                    {/* Delete Button */}
                     <button
                       type='button'
                       onClick={(e) => handleDelete(e, conv.id, otherName)}
