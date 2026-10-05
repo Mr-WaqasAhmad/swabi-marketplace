@@ -23,7 +23,7 @@ const UserPost = lazy(() => import('./components/UserPost.jsx').then(m => ({ def
 const UserProfile = lazy(() => import('./components/UserProfile.jsx').then(m => ({ default: m.UserProfile })))
 const SellerProfile = lazy(() => import('./components/SellerProfile.jsx').then(m => ({ default: m.SellerProfile })))
 const Chat = lazy(() => import('./components/Chat.jsx').then(m => ({ default: m.Chat })))
-const Messages = lazy(() => import('./components/Messages.jsx').then(m => ({ default: m.Messages })))  // ✅ NAYA
+const Messages = lazy(() => import('./components/Messages.jsx').then(m => ({ default: m.Messages })))
 
 // ✅ LOADING COMPONENT
 const PageLoader = () => (
@@ -160,7 +160,7 @@ const router = createBrowserRouter([
               </Suspense>
             )
           },
-          // ✅ MESSAGES ROUTE (NAYA)
+          // ✅ MESSAGES ROUTE
           {
             path: "messages",
             element: (
@@ -169,7 +169,7 @@ const router = createBrowserRouter([
               </Suspense>
             )
           },
-          // ✅ CHAT ROUTE
+          // ✅ CHAT ROUTE — sirf postId
           {
             path: "chat/:postId",
             element: (
