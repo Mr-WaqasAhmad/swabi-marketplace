@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star } from 'lucide-react';
+import { MapPin, Search, ArrowUpDown, ChevronDown, Eye, Star, ArrowUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ShimmerEffect } from './ShimmerEffect';
 import { supabase } from './supabaseClient';
@@ -55,6 +55,25 @@ export const Home = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // ✅ Scroll listener — Back to Top dikhayein
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const { data: posts, isLoading, isError } = useQuery({
     queryKey: ['products'],
@@ -74,7 +93,7 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ "New" badge — sirf usi din post hue products
+  // ✅ "New" badge
   const isNewProduct = (createdAt) => {
     if (!createdAt) return false;
     const productDate = new Date(createdAt);
@@ -87,7 +106,7 @@ export const Home = () => {
     );
   };
 
-  // ✅ Real-time Product Age calculate karein
+  // ✅ Real-time Product Age
   const getProductAge = (createdAt) => {
     if (!createdAt) return '';
 
@@ -154,7 +173,6 @@ export const Home = () => {
     return filtered;
   }, [posts, searchQuery, selectedCategory, sortBy]);
 
-  // ✅ Sort Options — Top Rated add kiya
   const sortOptions = [
     { value: 'newest', label: 'Newest First' },
     { value: 'oldest', label: 'Oldest First' },
@@ -409,6 +427,20 @@ export const Home = () => {
           )}
         </section>
       </main>
+
+      {/* ✅ BACK TO TOP BUTTON */}
+      <button
+        type="button"
+        onClick={scrollToTop}
+        aria-label="Back to top"
+        className={`fixed bottom-6 right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-[#0a4d3c] hover:bg-[#D4AF37] text-white hover:text-[#0a4d3c] shadow-lg hover:shadow-xl border border-white/20 transition-all duration-300 cursor-pointer ${
+          showBackToTop
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <ArrowUp className='w-5 h-5 sm:w-6 sm:h-6' strokeWidth={2.5} />
+      </button>
     </>
   );
 };
