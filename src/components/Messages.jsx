@@ -110,18 +110,12 @@ export const Messages = () => {
     };
   }, [user?.id, queryClient]);
 
-  // ✅ Presence — kaun online hai
+  // ✅ Presence — COMMON channel per conversation
   useEffect(() => {
     if (!user?.id || !conversations || conversations.length === 0) return;
 
-    // Saare other user IDs
-    const otherUserIds = conversations.map((c) => c.other_user_id);
-
-    if (otherUserIds.length === 0) return;
-
-    // Har user ke liye presence channel join karein
-    const channels = otherUserIds.map((otherId) => {
-      const channel = supabase.channel(`presence-${otherId}`, {
+    const channels = conversations.map((conv) => {
+      const channel = supabase.channel(`presence-conv-${conv.id}`, {
         config: {
           presence: {
             key: user.id,
@@ -132,22 +126,34 @@ export const Messages = () => {
       channel
         .on('presence', { event: 'sync' }, () => {
           const state = channel.presenceState();
-          const isOnline = Object.keys(state).length > 1; // khud + dusra
-
-          // Agar doosra user present hai
-          const otherUserPresent = Object.values(state).some((arr) =>
-            arr.some((p) => p.user_id === otherId)
-          );
+          const allUsers = Object.values(state).flat();
+          const isOtherOnline = allUsers.some((p) => p.user_id === conv.other_user_id);
 
           setOnlineUsers((prev) => {
             const newSet = new Set(prev);
-            if (otherUserPresent) {
-              newSet.add(otherId);
+            if (isOtherOnline) {
+              newSet.add(conv.other_user_id);
             } else {
-              newSet.delete(otherId);
+              newSet.delete(conv.other_user_id);
             }
             return newSet;
           });
+        })
+        .on('presence', { event: 'join' }, ({ newPresences }) => {
+          const isOther = newPresences?.some((p) => p.user_id === conv.other_user_id);
+          if (isOther) {
+            setOnlineUsers((prev) => new Set([...prev, conv.other_user_id]));
+          }
+        })
+        .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+          const isOther = leftPresences?.some((p) => p.user_id === conv.other_user_id);
+          if (isOther) {
+            setOnlineUsers((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(conv.other_user_id);
+              return newSet;
+            });
+          }
         })
         .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
@@ -245,7 +251,6 @@ export const Messages = () => {
       <main className='w-full min-h-screen bg-gray-50 pt-20 pb-12 select-none'>
         <div className='max-w-3xl mx-auto px-3 sm:px-6'>
 
-          {/* Header */}
           <div className='flex items-center gap-3 mb-5'>
             <Link
               to="/home"
@@ -267,7 +272,6 @@ export const Messages = () => {
             </div>
           </div>
 
-          {/* Empty State */}
           {conversations?.length === 0 ? (
             <div className='bg-white border border-gray-200 rounded-2xl p-8 sm:p-12 text-center shadow-sm'>
               <div className='w-16 h-16 rounded-full bg-[#effffb] flex items-center justify-center mx-auto mb-4'>
@@ -302,18 +306,16 @@ export const Messages = () => {
                       hasUnread ? 'border-[#0a4d3c]/30 bg-[#effffb]/30' : 'border-gray-200'
                     } ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
                   >
-                    {/* Main Link */}
                     <Link
                       to={`/chat/${conv.post_id}`}
                       className='flex items-center gap-3 p-3 sm:p-4 flex-1 min-w-0 cursor-pointer'
                     >
-                      {/* ✅ Avatar with Online Status */}
                       <div className='relative shrink-0'>
                         <div className='w-12 h-12 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-lg'>
                           {initial}
                         </div>
 
-                        {/* ✅ Online Dot */}
+                        {/* ✅ Online dot */}
                         <span
                           className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white transition-colors ${
                             isOnline ? 'bg-emerald-500' : 'bg-gray-400'
@@ -331,7 +333,6 @@ export const Messages = () => {
                         )}
                       </div>
 
-                      {/* Content */}
                       <div className='flex-1 min-w-0'>
                         <div className='flex items-center justify-between gap-2 mb-0.5'>
                           <div className='flex items-center gap-1.5 min-w-0'>
@@ -340,7 +341,6 @@ export const Messages = () => {
                             }`}>
                               {otherName}
                             </h3>
-                            {/* ✅ Online Badge */}
                             {isOnline && (
                               <span className='text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0'>
                                 Online
@@ -365,7 +365,6 @@ export const Messages = () => {
                         </p>
                       </div>
 
-                      {/* Post Image */}
                       {conv.post?.image_url && (
                         <img
                           src={conv.post.image_url}
@@ -375,7 +374,6 @@ export const Messages = () => {
                       )}
                     </Link>
 
-                    {/* Delete Button */}
                     <button
                       type='button'
                       onClick={(e) => handleDelete(e, conv.id, otherName)}
