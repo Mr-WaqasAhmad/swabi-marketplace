@@ -51,14 +51,12 @@ export const Home = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
+  // ✅ Scroll listener
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 400) {
-        setShowBackToTop(true);
-      } else {
-        setShowBackToTop(false);
-      }
+      setShowBackToTop(window.scrollY > 400);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -76,6 +74,7 @@ export const Home = () => {
     refetchOnWindowFocus: false,
   });
 
+  // ✅ Category Counts
   const categoryCounts = useMemo(() => {
     if (!posts) return {};
     return posts.reduce((acc, post) => {
@@ -86,11 +85,29 @@ export const Home = () => {
     }, {});
   }, [posts]);
 
-  // ✅ Active Categories — sirf jinme ads hain
-  const activeCategories = useMemo(() => {
-    if (!posts) return [];
-    return categories.filter((cat) => (categoryCounts[cat] || 0) > 0);
-  }, [posts, categoryCounts]);
+  // ✅ Categories sorted — pehle jinke ads hain, phir alphabetically
+  const sortedCategories = useMemo(() => {
+    const withAds = [];
+    const withoutAds = [];
+
+    categories.forEach((cat) => {
+      if ((categoryCounts[cat] || 0) > 0) {
+        withAds.push(cat);
+      } else {
+        withoutAds.push(cat);
+      }
+    });
+
+    // Ads wali categories — count ke hisaab se sort (zyada pehle)
+    withAds.sort((a, b) => (categoryCounts[b] || 0) - (categoryCounts[a] || 0));
+
+    return [...withAds, ...withoutAds];
+  }, [categoryCounts]);
+
+  // ✅ Visible categories — 10 by default, "Show All" pe saari
+  const visibleCategories = showAllCategories
+    ? sortedCategories
+    : sortedCategories.slice(0, 10);
 
   const isNewProduct = (createdAt) => {
     if (!createdAt) return false;
@@ -234,10 +251,26 @@ export const Home = () => {
           </div>
         </section>
 
-        {/* ✅ CATEGORY CHIPS ROW — Sirf Ek Category Filter */}
+        {/* ✅ CATEGORY CHIPS ROW */}
         <section className='max-w-6xl mx-auto px-3 sm:px-6 mt-4'>
+          <div className='flex items-center justify-between mb-2'>
+            <h3 className='text-[11px] sm:text-xs font-bold text-gray-600 uppercase tracking-wider'>
+              Categories
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowAllCategories(!showAllCategories)}
+              className='text-[11px] sm:text-xs font-bold text-[#0a4d3c] hover:text-[#D4AF37] transition-colors cursor-pointer flex items-center gap-1'
+            >
+              {showAllCategories ? 'Show Less' : `Show All (${categories.length})`}
+              <ChevronDown
+                className={`w-3 h-3 transition-transform ${showAllCategories ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
+
           <div className='flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent'>
-            {/* ✅ All Chip */}
+            {/* All Chip */}
             <button
               type="button"
               onClick={() => setSelectedCategory('')}
@@ -258,10 +291,11 @@ export const Home = () => {
               </span>
             </button>
 
-            {/* ✅ Category Chips — Saari jinke ads hain */}
-            {activeCategories.map((cat) => {
+            {/* Category Chips */}
+            {visibleCategories.map((cat) => {
               const isActive = selectedCategory === cat;
               const count = categoryCounts[cat] || 0;
+              const hasAds = count > 0;
 
               return (
                 <button
@@ -271,23 +305,38 @@ export const Home = () => {
                   className={`shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#0a4d3c] text-white border-[#0a4d3c] shadow-sm'
-                      : 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+                      : hasAds
+                        ? 'bg-white text-gray-700 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
+                        : 'bg-white text-gray-400 border-gray-200 hover:border-[#0a4d3c] hover:text-[#0a4d3c]'
                   }`}
                 >
-                  <span className={isActive ? 'text-[#D4AF37]' : 'text-[#0a4d3c]'}>
+                  <span className={isActive ? 'text-[#D4AF37]' : hasAds ? 'text-[#0a4d3c]' : 'text-gray-400'}>
                     {getCategoryIcon(cat, 'w-3.5 h-3.5')}
                   </span>
                   <span className='max-w-30 truncate'>{cat}</span>
                   <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                     isActive
                       ? 'bg-[#D4AF37] text-[#0a4d3c]'
-                      : 'bg-gray-100 text-gray-600'
+                      : hasAds
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-gray-100 text-gray-400'
                   }`}>
                     {count}
                   </span>
                 </button>
               );
             })}
+
+            {/* Show All Button (agar 10 se zyada hain) */}
+            {!showAllCategories && sortedCategories.length > 10 && (
+              <button
+                type="button"
+                onClick={() => setShowAllCategories(true)}
+                className='shrink-0 flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-[#0a4d3c] px-3 py-1.5 rounded-full border-2 border-dashed border-[#0a4d3c]/40 hover:border-[#0a4d3c] hover:bg-[#effffb] transition-all cursor-pointer'
+              >
+                <span>+{sortedCategories.length - 10} more</span>
+              </button>
+            )}
           </div>
         </section>
 
@@ -373,7 +422,9 @@ export const Home = () => {
         >
           {filteredPosts?.length === 0 ? (
             <div className="text-center py-12 text-gray-500 font-semibold text-sm" role="status">
-              Koi ad nahi mila!
+              {selectedCategory
+                ? `"${selectedCategory}" mein abhi koi ad nahi hai.`
+                : 'Koi ad nahi mila!'}
             </div>
           ) : (
             <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4'>
@@ -470,6 +521,7 @@ export const Home = () => {
         </section>
       </main>
 
+      {/* ✅ BACK TO TOP */}
       <button
         type="button"
         onClick={scrollToTop}
