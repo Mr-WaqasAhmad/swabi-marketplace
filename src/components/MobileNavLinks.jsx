@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
 import { useUser } from '../contexts/UserDetailsContext';
 
 export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
@@ -64,7 +63,7 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         : '-translate-y-10 opacity-0 pointer-events-none invisible'
         }`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-around">
         <NavLink
           to="/"
           onClick={() => setIsOpened(false)}
@@ -88,22 +87,6 @@ export const MobileNavLinks = ({ isOpened, setIsOpened }) => {
         >
           About Us
         </NavLink>
-
-        {/* ✅ Messages Link */}
-        {user && (
-          <NavLink
-            to="/messages"
-            onClick={() => setIsOpened(false)}
-            className={({ isActive }) =>
-              isActive
-                ? 'text-[#0a4d3c] font-bold flex items-center gap-1'
-                : 'text-gray-800 font-medium hover:text-[#0a4d3c] flex items-center gap-1'
-            }
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Messages</span>
-          </NavLink>
-        )}
       </div>
 
       <NavLink
