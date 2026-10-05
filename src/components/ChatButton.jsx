@@ -8,17 +8,12 @@ export const ChatButton = ({ sellerId, postId, className = '' }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    if (user?.id === sellerId) {
-      alert('Ye aap ki apni ad hai. Aap khud ko message nahi kar sakte.');
-      return;
-    }
-
     if (!user) {
       navigate('/login');
       return;
     }
 
-    // ✅ Sirf postId se chat — seller auto-detect hoga
+    // ✅ Sirf postId se chat
     navigate(`/chat/${postId}`);
   };
 
