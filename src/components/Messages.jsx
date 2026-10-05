@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { MessageCircle, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 import { SEO } from './SEO';
@@ -77,6 +77,7 @@ const fetchConversations = async (userId) => {
 export const Messages = () => {
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState(null);
 
   const { data: conversations, isLoading, isError } = useQuery({
     queryKey: ['conversations', user?.id],
@@ -86,7 +87,7 @@ export const Messages = () => {
     refetchOnWindowFocus: true,
   });
 
-  // ✅ Realtime — naya message aane pe list update
+  // ✅ Realtime
   useEffect(() => {
     if (!user?.id) return;
 
@@ -94,11 +95,7 @@ export const Messages = () => {
       .channel('messages-list')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
+        { event: '*', schema: 'public', table: 'conversations' },
         () => {
           queryClient.invalidateQueries(['conversations', user.id]);
           queryClient.invalidateQueries(['header-unread']);
@@ -110,6 +107,52 @@ export const Messages = () => {
       supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient]);
+
+  // ✅ Delete mutation
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (conversationId) => {
+      // 1. Messages delete
+      const { error: msgError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
+
+      if (msgError) throw new Error(msgError.message);
+
+      // 2. Conversation delete
+      const { error: convError } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (convError) throw new Error(convError.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['conversations', user?.id]);
+      queryClient.invalidateQueries(['header-unread']);
+      setDeletingId(null);
+    },
+    onError: (err) => {
+      alert('Delete nahi hua: ' + err.message);
+      setDeletingId(null);
+    },
+  });
+
+  const handleDelete = (e, convId, otherName) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const confirmed = window.confirm(
+      `⚠️ Kya aap ${otherName} ke saath ye poori chat delete karna chahte hain?\n\n` +
+      `Saare messages hamesha ke liye delete ho jayenge.\n` +
+      `Yeh action undo nahi ho sakta.`
+    );
+
+    if (confirmed) {
+      setDeletingId(convId);
+      deleteConversationMutation.mutate(convId);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -193,64 +236,84 @@ export const Messages = () => {
                 const otherName = conv.other_user?.full_name || 'User';
                 const initial = otherName.trim()[0]?.toUpperCase() || 'U';
                 const hasUnread = conv.unread_count > 0;
+                const isDeleting = deletingId === conv.id;
 
                 return (
-                  <Link
+                  <div
                     key={conv.id}
-                    to={`/chat/${conv.post_id}`}
-                    className={`flex items-center gap-3 bg-white border rounded-2xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                    className={`relative flex items-center gap-3 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-all ${
                       hasUnread ? 'border-[#0a4d3c]/30 bg-[#effffb]/30' : 'border-gray-200'
-                    }`}
+                    } ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
                   >
-                    {/* Avatar */}
-                    <div className='relative shrink-0'>
-                      <div className='w-12 h-12 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-lg'>
-                        {initial}
+                    {/* Main Link */}
+                    <Link
+                      to={`/chat/${conv.post_id}`}
+                      className='flex items-center gap-3 p-3 sm:p-4 flex-1 min-w-0 cursor-pointer'
+                    >
+                      {/* Avatar */}
+                      <div className='relative shrink-0'>
+                        <div className='w-12 h-12 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-lg'>
+                          {initial}
+                        </div>
+                        {hasUnread && (
+                          <span className='absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white'>
+                            {conv.unread_count > 99 ? '99+' : conv.unread_count}
+                          </span>
+                        )}
                       </div>
-                      {hasUnread && (
-                        <span className='absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center border-2 border-white'>
-                          {conv.unread_count > 99 ? '99+' : conv.unread_count}
-                        </span>
-                      )}
-                    </div>
 
-                    {/* Content */}
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center justify-between gap-2 mb-0.5'>
-                        <h3 className={`text-sm sm:text-base font-bold truncate ${
-                          hasUnread ? 'text-gray-900' : 'text-gray-800'
+                      {/* Content */}
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-center justify-between gap-2 mb-0.5'>
+                          <h3 className={`text-sm sm:text-base font-bold truncate ${
+                            hasUnread ? 'text-gray-900' : 'text-gray-800'
+                          }`}>
+                            {otherName}
+                          </h3>
+                          <span className='text-[10px] sm:text-xs text-gray-400 font-medium shrink-0'>
+                            {getTimeAgo(conv.last_message_at)}
+                          </span>
+                        </div>
+
+                        {conv.post && (
+                          <p className='text-[10px] sm:text-xs text-[#0a4d3c] font-semibold truncate mb-0.5'>
+                            {conv.post.title}
+                          </p>
+                        )}
+
+                        <p className={`text-xs sm:text-sm truncate ${
+                          hasUnread ? 'text-gray-700 font-semibold' : 'text-gray-500'
                         }`}>
-                          {otherName}
-                        </h3>
-                        <span className='text-[10px] sm:text-xs text-gray-400 font-medium shrink-0'>
-                          {getTimeAgo(conv.last_message_at)}
-                        </span>
+                          {conv.last_message || 'Naya conversation'}
+                        </p>
                       </div>
 
-                      {/* Product title */}
-                      {conv.post && (
-                        <p className='text-[10px] sm:text-xs text-[#0a4d3c] font-semibold truncate mb-0.5'>
-                          {conv.post.title}
-                        </p>
+                      {/* Post Image */}
+                      {conv.post?.image_url && (
+                        <img
+                          src={conv.post.image_url}
+                          alt={conv.post.title}
+                          className='w-12 h-12 rounded-xl object-cover border border-gray-200 shrink-0 hidden sm:block'
+                        />
                       )}
+                    </Link>
 
-                      {/* Last message */}
-                      <p className={`text-xs sm:text-sm truncate ${
-                        hasUnread ? 'text-gray-700 font-semibold' : 'text-gray-500'
-                      }`}>
-                        {conv.last_message || 'Naya conversation'}
-                      </p>
-                    </div>
-
-                    {/* Post Image */}
-                    {conv.post?.image_url && (
-                      <img
-                        src={conv.post.image_url}
-                        alt={conv.post.title}
-                        className='w-12 h-12 rounded-xl object-cover border border-gray-200 shrink-0 hidden sm:block'
-                      />
-                    )}
-                  </Link>
+                    {/* ✅ Delete Button */}
+                    <button
+                      type='button'
+                      onClick={(e) => handleDelete(e, conv.id, otherName)}
+                      disabled={isDeleting}
+                      className='shrink-0 mr-2 sm:mr-3 p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer disabled:opacity-50'
+                      aria-label='Delete chat'
+                      title='Delete chat'
+                    >
+                      {isDeleting ? (
+                        <Loader2 className='w-4 h-4 animate-spin' />
+                      ) : (
+                        <Trash2 className='w-4 h-4' />
+                      )}
+                    </button>
+                  </div>
                 );
               })}
             </div>
