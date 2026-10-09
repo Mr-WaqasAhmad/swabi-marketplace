@@ -12,7 +12,6 @@ import { ChatButton } from './ChatButton';
 const getData = async (id) => {
   if (!id) return null;
 
-  // 1. Post fetch karein
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select('*')
@@ -22,7 +21,6 @@ const getData = async (id) => {
   if (postError) throw new Error(postError.message);
   if (!post) return null;
 
-  // 2. Seller details fetch karein
   let sellerDetails = null;
   if (post.user_id) {
     const { data: userData, error: profileError } = await supabase
@@ -35,7 +33,6 @@ const getData = async (id) => {
     sellerDetails = userData;
   }
 
-  // 3. Similar products fetch karein
   let similarProducts = [];
   if (post.category) {
     const { data: similar, error: similarError } = await supabase
@@ -74,12 +71,11 @@ export const SingleProductDetails = () => {
     queryKey: ['product', param.id],
     queryFn: () => getData(param.id),
     enabled: !!param.id,
-    staleTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 5,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 
-  // ✅ Views Increment
   useEffect(() => {
     if (param.id) {
       supabase.rpc('increment_view', { post_id: param.id }).then(({ error }) => {
@@ -107,7 +103,6 @@ export const SingleProductDetails = () => {
   const isSold = product?.status === 'sold';
   const similarProducts = product?.similar_products || [];
 
-  // Share Handler
   const handleShare = async () => {
     const shareUrl = `https://skpk.vercel.app/singleproductdetails/${param.id}`;
     const shareData = {
@@ -178,7 +173,7 @@ export const SingleProductDetails = () => {
                 type="button"
                 onClick={handleShare}
                 aria-label="Share this product"
-                className={`relative p-2 border rounded-xl transition-all cursor-pointer shadow-sm ${
+                className={`relative p-2 border rounded-xl transition-colors cursor-pointer shadow-sm ${
                   copied
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                     : 'bg-white border-gray-200 hover:text-[#0a4d3c] hover:border-[#0a4d3c]'
@@ -192,7 +187,7 @@ export const SingleProductDetails = () => {
               </button>
 
               {copied && (
-                <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 animate-pulse'>
+                <span className='text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200'>
                   ✓ Link copied!
                 </span>
               )}
@@ -221,9 +216,9 @@ export const SingleProductDetails = () => {
             {/* LEFT SECTION */}
             <article className='lg:col-span-8 flex flex-col gap-6'>
 
-              {/* Image */}
+              {/* ✅ Main Image — FIXED HEIGHT, NO aspect-square */}
               <div className='bg-white border border-gray-200 rounded-3xl p-3 sm:p-4 shadow-sm overflow-hidden'>
-                <div className='relative w-full aspect-4/3 sm:aspect-16/10 bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center'>
+                <div className='relative w-full h-64 sm:h-96 bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center'>
                   {imageLoading && !imageError && (
                     <div className='absolute flex gap-1.5 items-center justify-center z-10'>
                       <div className='w-3.5 h-3.5 rounded-full bg-black animate-bounce'></div>
@@ -235,20 +230,17 @@ export const SingleProductDetails = () => {
                     <div className='text-xs text-gray-400 font-medium'>Image unavailable</div>
                   ) : (
                     <img
-  src={product?.image_url}
-  alt={`${product?.title} for sale in ${product?.location || 'Swabi'}`}
-  onLoad={() => setImageLoading(false)}
-  onError={() => { setImageLoading(false); setImageError(true); }}
-  loading='lazy'
-  decoding='async'
-  fetchPriority='high'
-  itemProp="image"
-  className={`w-[90%] h-[90%] object-contain transition-opacity duration-300 ${
-    imageLoading ? 'opacity-0' : 'opacity-100'
-  } ${isSold ? 'grayscale opacity-80' : ''}`}
-  style={{ contain: 'layout' }}
-/>
-      
+                      src={product?.image_url}
+                      alt={`${product?.title} for sale in ${product?.location || 'Swabi'}`}
+                      onLoad={() => setImageLoading(false)}
+                      onError={() => { setImageLoading(false); setImageError(true); }}
+                      decoding='async'
+                      fetchPriority='high'
+                      itemProp="image"
+                      className={`w-full h-full object-contain transition-opacity duration-300 ${
+                        imageLoading ? 'opacity-0' : 'opacity-100'
+                      } ${isSold ? 'grayscale opacity-80' : ''}`}
+                    />
                   )}
 
                   {isSold && (
@@ -258,7 +250,7 @@ export const SingleProductDetails = () => {
                     </div>
                   )}
 
-                  <div className='absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
+                  <div className='absolute bottom-3 right-3 bg-black/60 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-md pointer-events-none flex items-center gap-1'>
                     <span className='w-1 h-1 rounded-full bg-[#D4AF37]'></span>
                     Swabi Market
                   </div>
@@ -317,7 +309,7 @@ export const SingleProductDetails = () => {
 
             {/* RIGHT SECTION */}
             <aside className='lg:col-span-4 flex flex-col gap-4' aria-label="Seller information">
-              <div className='bg-white border border-gray-200 rounded-3xl p-5 shadow-sm flex flex-col gap-5 sticky top-20'>
+              <div className='bg-white border border-gray-200 rounded-3xl p-5 shadow-sm flex flex-col gap-5 lg:sticky lg:top-20'>
                 <h2 className='font-bold text-gray-800 text-base border-b pb-3 border-gray-100 flex items-center gap-2'>
                   <User className='w-4 h-4 text-[#0a4d3c]' aria-hidden="true" /> Seller Contact Info
                 </h2>
@@ -364,23 +356,21 @@ export const SingleProductDetails = () => {
                       <a
                         href={`tel:${sellerPhone}`}
                         aria-label={`Call seller ${sellerName}`}
-                        className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-all cursor-pointer'
+                        className='w-full flex items-center justify-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm py-3 px-4 rounded-2xl shadow transition-colors cursor-pointer'
                       >
                         <Phone className='w-4 h-4' aria-hidden="true" />
                         <span>Call Seller</span>
                       </a>
 
-                      {/* ✅ Chat Button — WhatsApp ki jagah */}
                       <ChatButton
                         sellerId={product?.user_id}
                         postId={param.id}
                       />
 
-                      {/* Order Now Button */}
                       <button
                         type='button'
                         onClick={() => setShowOrderModal(true)}
-                        className='w-full flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#b8962e] text-[#0a4d3c] font-bold text-sm py-3 px-4 rounded-2xl shadow-md transition-all cursor-pointer'
+                        className='w-full flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-[#b8962e] text-[#0a4d3c] font-bold text-sm py-3 px-4 rounded-2xl shadow-md transition-colors cursor-pointer'
                       >
                         <ShoppingCart className='w-4 h-4' aria-hidden="true" />
                         <span>Order Now</span>
@@ -390,17 +380,16 @@ export const SingleProductDetails = () => {
 
                   <Link
                     to={`/seller/${product?.user_id}`}
-                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-all duration-200 text-[#0a4d3c]'
+                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border px-3 py-2 rounded-xl hover:bg-[#D4AF37] transition-colors text-[#0a4d3c]'
                   >
                     <User2 />
                     <span>View Seller Profile</span>
                   </Link>
 
-                  {/* Report Ad Button */}
                   <button
                     type="button"
                     onClick={() => setShowReportModal(true)}
-                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 transition-all duration-200 text-red-600 cursor-pointer'
+                    className='flex items-center justify-center gap-1.5 text-xs sm:text-sm font-medium border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 transition-colors text-red-600 cursor-pointer'
                   >
                     <Flag className='w-3.5 h-3.5' />
                     <span>Report This Ad</span>
@@ -410,7 +399,7 @@ export const SingleProductDetails = () => {
             </aside>
           </div>
 
-          {/* SIMILAR PRODUCTS SECTION */}
+          {/* ✅ SIMILAR PRODUCTS — Optimized */}
           {similarProducts.length > 0 && (
             <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
               <div className='flex items-center justify-between mb-5'>
@@ -435,26 +424,32 @@ export const SingleProductDetails = () => {
                   <Link
                     key={similarProduct.id}
                     to={`/singleproductdetails/${similarProduct.id}?ref=similar`}
-                    className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col group'
+                    className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col'
                   >
-                    <div className='relative aspect-square overflow-hidden bg-gray-100 p-2'>
+                    {/* ✅ Fixed height — no aspect-square */}
+                    <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-100'>
                       <img
-                        src={similarProduct.image_url || "https://via.placeholder.com/300"}
+                        src={similarProduct.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
                         alt={similarProduct.title}
                         loading="lazy"
-                        className='w-full h-full object-contain group-hover:scale-105 transition-transform duration-300'
+                        decoding="async"
+                        fetchPriority="low"
+                        width="300"
+                        height="300"
+                        className='w-full h-full object-cover'
+                        style={{ contain: 'strict' }}
                       />
                     </div>
 
-                    <div className='p-2.5 sm:p-3 flex flex-col gap-1.5'>
-                      <h3 className='text-xs sm:text-sm font-bold text-gray-800 truncate'>
+                    <div className='p-2 sm:p-2.5 flex flex-col gap-1'>
+                      <h3 className='text-[11px] sm:text-sm font-bold text-gray-800 truncate leading-tight'>
                         {similarProduct.title}
                       </h3>
-                      <p className='text-[#0a4d3c] font-black text-xs sm:text-sm'>
+                      <p className='text-[#0a4d3c] font-black text-[11px] sm:text-sm'>
                         PKR {Number(similarProduct.price)?.toLocaleString()}
                       </p>
-                      <div className='flex items-center gap-1 text-gray-500 text-[10px] sm:text-xs truncate'>
-                        <MapPin className='w-3 h-3 text-red-500 shrink-0' />
+                      <div className='flex items-center gap-0.5 text-gray-500 text-[9px] sm:text-[10px] truncate'>
+                        <MapPin className='w-2.5 h-2.5 text-red-500 shrink-0' />
                         <span className='truncate'>{similarProduct.location || 'Swabi'}</span>
                       </div>
                     </div>
@@ -467,7 +462,6 @@ export const SingleProductDetails = () => {
         </div>
       </main>
 
-      {/* ✅ Order Modal */}
       {!isSold && sellerWhatsapp && (
         <OrderModal
           isOpen={showOrderModal}
@@ -478,7 +472,6 @@ export const SingleProductDetails = () => {
         />
       )}
 
-      {/* ✅ Report Modal */}
       <ReportModal
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
