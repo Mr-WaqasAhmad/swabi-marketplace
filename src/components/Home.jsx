@@ -96,7 +96,7 @@ const ProductCard = memo(({ product }) => {
       itemType="https://schema.org/Product"
     >
       {/* ✅ FIXED HEIGHT — NO aspect-square */}
-<div className='relative w-full h-36 sm:h-44 overflow-hidden bg-white'>
+<div className='relative w-full h-36 sm:h-44 overflow-hidden bg-white pt-2'>
         <img
   src={product.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
   alt={product.title}
