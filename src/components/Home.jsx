@@ -96,7 +96,7 @@ const ProductCard = memo(({ product }) => {
       itemType="https://schema.org/Product"
     >
       {/* ✅ Image container — fixed height */}
-      <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-50'>
+      <div className='relative w-full h-36 sm:h-44 overflow-hidden pt-2 bg-gray-50'>
         <img
           src={product.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y5ZmFmYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
           alt={product.title}
@@ -106,7 +106,7 @@ const ProductCard = memo(({ product }) => {
           itemProp="image"
           width="300"
           height="300"
-          className='w-full h-full object-contain'
+          className='w-full h-full object-contain rounded'
         />
 
         {isNew && (
