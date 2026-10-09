@@ -7,7 +7,7 @@ import { categories } from "./CategorySelector";
 
 export const PostAd = () => {
   const navigate = useNavigate();
-  const { id } = useParams(); // ✅ ID se edit mode pata chalega
+  const { id } = useParams();
   const { user } = useUser();
   const isEditMode = !!id;
 
@@ -67,6 +67,7 @@ export const PostAd = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Image compress — 800px, quality 0.6
   const compressImage = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -78,7 +79,9 @@ export const PostAd = () => {
           const canvas = document.createElement("canvas");
           let width = img.width;
           let height = img.height;
-          const maxDimension = 1000;
+
+          // ✅ 800px max — sharp on all devices
+          const maxDimension = 800;
 
           if (width > height) {
             if (width > maxDimension) {
@@ -109,7 +112,7 @@ export const PostAd = () => {
               }
             },
             "image/jpeg",
-            0.6
+            0.6  // ✅ Quality 0.6 — no blur, good size
           );
         };
       };
@@ -186,7 +189,7 @@ export const PostAd = () => {
       }
 
       if (isEditMode) {
-        // ✅ UPDATE
+        // UPDATE
         const { data: updatedRows, error: dbError } = await supabase
           .from("posts")
           .update({
@@ -210,7 +213,7 @@ export const PostAd = () => {
         alert("Ad successfully update ho gayi!");
         navigate("/userpost");
       } else {
-        // ✅ INSERT
+        // INSERT
         const { error: dbError } = await supabase.from("posts").insert([
           {
             user_id: user.id,
@@ -317,7 +320,7 @@ export const PostAd = () => {
                       Click or drag photo here to upload
                     </span>
                     <span className="text-[11px] text-gray-400 font-medium">
-                      Auto-compressed (around 80KB - 150KB)
+                      Auto-compressed (around 100KB - 250KB)
                     </span>
                   </div>
                 )}
