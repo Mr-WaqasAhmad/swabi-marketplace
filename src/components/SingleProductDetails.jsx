@@ -235,14 +235,20 @@ export const SingleProductDetails = () => {
                     <div className='text-xs text-gray-400 font-medium'>Image unavailable</div>
                   ) : (
                     <img
-                      src={product?.image_url}
-                      alt={`${product?.title} for sale in ${product?.location || 'Swabi'}`}
-                      onLoad={() => setImageLoading(false)}
-                      onError={() => { setImageLoading(false); setImageError(true); }}
-                      className={`w-[90%] h-[90%] object-contain transition-opacity duration-300 ${
-                        imageLoading ? 'opacity-0' : 'opacity-100'
-                      } ${isSold ? 'grayscale opacity-80' : ''}`}
-                    />
+  src={product?.image_url}
+  alt={`${product?.title} for sale in ${product?.location || 'Swabi'}`}
+  onLoad={() => setImageLoading(false)}
+  onError={() => { setImageLoading(false); setImageError(true); }}
+  loading='lazy'
+  decoding='async'
+  fetchPriority='high'
+  itemProp="image"
+  className={`w-[90%] h-[90%] object-contain transition-opacity duration-300 ${
+    imageLoading ? 'opacity-0' : 'opacity-100'
+  } ${isSold ? 'grayscale opacity-80' : ''}`}
+  style={{ contain: 'layout' }}
+/>
+      
                   )}
 
                   {isSold && (
