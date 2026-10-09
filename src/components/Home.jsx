@@ -84,7 +84,7 @@ const isNewProduct = (createdAt) => {
 };
 
 // ============================================
-// ✅ PRODUCT CARD (Optimized for Mobile)
+// ✅ PRODUCT CARD (Optimized + Uniform Eye Box)
 // ============================================
 const ProductCard = memo(({ product }) => {
   const isNew = isNewProduct(product.created_at);
@@ -95,20 +95,19 @@ const ProductCard = memo(({ product }) => {
       itemScope
       itemType="https://schema.org/Product"
     >
-      {/* ✅ FIXED HEIGHT — NO aspect-square */}
-<div className='relative w-full h-36 sm:h-44 overflow-hidden bg-white pt-2'>
+      {/* ✅ Image container — fixed height */}
+      <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-50'>
         <img
-  src={product.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
-  alt={product.title}
-  loading='lazy'
-  decoding='async'
-  fetchPriority='low'
-  itemProp="image"
-  width="300"
-  height="300"
-  className='w-full h-full object-contain bg-white'
-/>
-        
+          src={product.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y5ZmFmYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
+          alt={product.title}
+          loading='lazy'
+          decoding='async'
+          fetchPriority='low'
+          itemProp="image"
+          width="300"
+          height="300"
+          className='w-full h-full object-contain'
+        />
 
         {isNew && (
           <div className='absolute top-1.5 left-1.5 bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[9px] font-bold z-10'>
@@ -116,8 +115,10 @@ const ProductCard = memo(({ product }) => {
           </div>
         )}
 
-        <div className='absolute top-1.5 right-1.5 bg-white/95 text-gray-700 px-1.5 py-0.5 rounded text-[9px] font-bold z-10 border border-gray-200'>
-          <Eye className='w-2.5 h-2.5 inline text-[#0a4d3c]' /> {product.views || 0}
+        {/* ✅ Uniform Views Box — Same size, aligned right */}
+        <div className='absolute top-1.5 right-1.5 bg-white/95 text-gray-700 h-5 px-1.5 rounded flex items-center gap-0.5 text-[9px] font-bold z-10 border border-gray-200 leading-none'>
+          <Eye className='w-2.5 h-2.5 text-[#0a4d3c] shrink-0' />
+          <span className='leading-none pt-px'>{product.views || 0}</span>
         </div>
       </div>
 
