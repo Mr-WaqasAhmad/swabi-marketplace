@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MapPin, Phone, Share2, ShieldCheck, User, User2, Wrench, MessageCircle, Check, ShoppingCart, Flag, Eye } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
-import { OrderModal } from './OrderModal';
-import { ReportModal } from './ReportModal';
 import { SEO } from './SEO';
 import { ChatButton } from './ChatButton';
+
+// ✅ Lazy load modals — only when needed
+const OrderModal = lazy(() => import('./OrderModal').then(m => ({ default: m.OrderModal })));
+const ReportModal = lazy(() => import('./ReportModal').then(m => ({ default: m.ReportModal })));
 
 const getData = async (id) => {
   if (!id) return null;
 
   const { data: post, error: postError } = await supabase
     .from('posts')
-    .select('*')
+    .select('id, title, price, category, location, description, image_url, warranty, views, status, created_at, user_id')
     .eq('id', id)
     .single();
 
@@ -25,7 +27,7 @@ const getData = async (id) => {
   if (post.user_id) {
     const { data: userData, error: profileError } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, phone, whatsapp, location')
       .eq('id', post.user_id)
       .maybeSingle();
 
@@ -37,7 +39,7 @@ const getData = async (id) => {
   if (post.category) {
     const { data: similar, error: similarError } = await supabase
       .from('posts')
-      .select('*')
+      .select('id, title, price, location, image_url')
       .eq('category', post.category)
       .eq('status', 'active')
       .neq('id', id)
@@ -53,7 +55,7 @@ const getData = async (id) => {
     full_name: sellerDetails?.full_name || post.full_name,
     phone: sellerDetails?.phone || post.phone,
     whatsapp: sellerDetails?.whatsapp || null,
-    location: sellerDetails?.location || sellerDetails?.address || post.location,
+    location: sellerDetails?.location || post.location,
     user_details: sellerDetails,
     similar_products: similarProducts,
   };
@@ -71,7 +73,7 @@ export const SingleProductDetails = () => {
     queryKey: ['product', param.id],
     queryFn: () => getData(param.id),
     enabled: !!param.id,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
@@ -98,7 +100,7 @@ export const SingleProductDetails = () => {
   const sellerName = seller.full_name || product?.full_name || "User";
   const sellerPhone = seller.phone || product?.phone || "+92 3XX XXXXXXX";
   const sellerWhatsapp = seller.whatsapp || product?.whatsapp || null;
-  const sellerLocation = seller.location || seller.address || product?.location || "Swabi, KP";
+  const sellerLocation = seller.location || product?.location || "Swabi, KP";
 
   const isSold = product?.status === 'sold';
   const similarProducts = product?.similar_products || [];
@@ -122,7 +124,6 @@ export const SingleProductDetails = () => {
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.error('Share error:', err);
         try {
           await navigator.clipboard.writeText(shareUrl);
           setCopied(true);
@@ -216,14 +217,14 @@ export const SingleProductDetails = () => {
             {/* LEFT SECTION */}
             <article className='lg:col-span-8 flex flex-col gap-6'>
 
-              {/* ✅ Main Image — FIXED HEIGHT, NO aspect-square */}
+              {/* Main Image */}
               <div className='bg-white border border-gray-200 rounded-3xl p-3 sm:p-4 shadow-sm overflow-hidden'>
-                <div className='relative w-full h-64 sm:h-96 bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center'>
+                <div className='relative w-full h-64 sm:h-96 bg-gray-50 rounded-2xl overflow-hidden flex items-center justify-center'>
                   {imageLoading && !imageError && (
                     <div className='absolute flex gap-1.5 items-center justify-center z-10'>
-                      <div className='w-3.5 h-3.5 rounded-full bg-black animate-bounce'></div>
-                      <div className='w-3.5 h-3.5 rounded-full bg-black animate-bounce' style={{ animationDelay: '0.15s' }}></div>
-                      <div className='w-3.5 h-3.5 rounded-full bg-black animate-bounce' style={{ animationDelay: '0.3s' }}></div>
+                      <div className='w-3.5 h-3.5 rounded-full bg-gray-400 animate-bounce'></div>
+                      <div className='w-3.5 h-3.5 rounded-full bg-gray-400 animate-bounce' style={{ animationDelay: '0.15s' }}></div>
+                      <div className='w-3.5 h-3.5 rounded-full bg-gray-400 animate-bounce' style={{ animationDelay: '0.3s' }}></div>
                     </div>
                   )}
                   {imageError ? (
@@ -399,7 +400,7 @@ export const SingleProductDetails = () => {
             </aside>
           </div>
 
-          {/* ✅ SIMILAR PRODUCTS — Optimized */}
+          {/* ✅ SIMILAR PRODUCTS — object-contain fix */}
           {similarProducts.length > 0 && (
             <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
               <div className='flex items-center justify-between mb-5'>
@@ -426,18 +427,17 @@ export const SingleProductDetails = () => {
                     to={`/singleproductdetails/${similarProduct.id}?ref=similar`}
                     className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col'
                   >
-                    {/* ✅ Fixed height — no aspect-square */}
-                    <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-100'>
+                    {/* ✅ Fixed height + gray-50 bg + object-contain */}
+                    <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-50'>
                       <img
-                        src={similarProduct.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
+                        src={similarProduct.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y5ZmFmYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
                         alt={similarProduct.title}
                         loading="lazy"
                         decoding="async"
                         fetchPriority="low"
                         width="300"
                         height="300"
-                        className='w-full h-full object-cover'
-                        style={{ contain: 'strict' }}
+                        className='w-full h-full object-contain'
                       />
                     </div>
 
@@ -462,24 +462,31 @@ export const SingleProductDetails = () => {
         </div>
       </main>
 
-      {!isSold && sellerWhatsapp && (
-        <OrderModal
-          isOpen={showOrderModal}
-          onClose={() => setShowOrderModal(false)}
-          product={product}
-          sellerName={sellerName}
-          sellerWhatsapp={sellerWhatsapp}
-        />
+      {/* ✅ Lazy load modals — only when opened */}
+      {showOrderModal && !isSold && sellerWhatsapp && (
+        <Suspense fallback={null}>
+          <OrderModal
+            isOpen={showOrderModal}
+            onClose={() => setShowOrderModal(false)}
+            product={product}
+            sellerName={sellerName}
+            sellerWhatsapp={sellerWhatsapp}
+          />
+        </Suspense>
       )}
 
-      <ReportModal
-        isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
-        product={product}
-        sellerName={sellerName}
-        sellerPhone={sellerPhone}
-        sellerLocation={sellerLocation}
-      />
+      {showReportModal && (
+        <Suspense fallback={null}>
+          <ReportModal
+            isOpen={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            product={product}
+            sellerName={sellerName}
+            sellerPhone={sellerPhone}
+            sellerLocation={sellerLocation}
+          />
+        </Suspense>
+      )}
     </>
   );
 };
