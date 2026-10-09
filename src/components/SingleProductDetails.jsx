@@ -6,8 +6,9 @@ import { ShimmerEffectForSingleItem } from './ShimmerEffectForSingleItem';
 import { supabase } from './supabaseClient';
 import { SEO } from './SEO';
 import { ChatButton } from './ChatButton';
+import { CommentsSection } from './CommentsSection';  // ✅ NAYA
 
-// ✅ Lazy load modals — only when needed
+// ✅ Lazy load modals
 const OrderModal = lazy(() => import('./OrderModal').then(m => ({ default: m.OrderModal })));
 const ReportModal = lazy(() => import('./ReportModal').then(m => ({ default: m.ReportModal })));
 
@@ -400,7 +401,12 @@ export const SingleProductDetails = () => {
             </aside>
           </div>
 
-          {/* ✅ SIMILAR PRODUCTS — object-contain fix */}
+          {/* ✅ COMMENTS + RATINGS SECTION — NAYA */}
+          <div className='mt-12'>
+            <CommentsSection postId={param.id} />
+          </div>
+
+          {/* SIMILAR PRODUCTS */}
           {similarProducts.length > 0 && (
             <section className='mt-12 pt-8 border-t border-gray-200' aria-label="Similar products">
               <div className='flex items-center justify-between mb-5'>
@@ -427,7 +433,6 @@ export const SingleProductDetails = () => {
                     to={`/singleproductdetails/${similarProduct.id}?ref=similar`}
                     className='bg-white border border-gray-200 rounded-xl sm:rounded-2xl overflow-hidden flex flex-col'
                   >
-                    {/* ✅ Fixed height + gray-50 bg + object-contain */}
                     <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-50'>
                       <img
                         src={similarProduct.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2Y5ZmFmYiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
@@ -462,7 +467,7 @@ export const SingleProductDetails = () => {
         </div>
       </main>
 
-      {/* ✅ Lazy load modals — only when opened */}
+      {/* ✅ Modals — Lazy loaded */}
       {showOrderModal && !isSold && sellerWhatsapp && (
         <Suspense fallback={null}>
           <OrderModal
