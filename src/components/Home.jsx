@@ -84,53 +84,49 @@ const isNewProduct = (createdAt) => {
 };
 
 // ============================================
-// ✅ PRODUCT CARD (memoized)
+// ✅ PRODUCT CARD (Optimized for Mobile)
 // ============================================
 const ProductCard = memo(({ product }) => {
   const isNew = isNewProduct(product.created_at);
 
   return (
     <article
-      className='bg-white border border-gray-300 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between'
+      className='bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col'
       itemScope
       itemType="https://schema.org/Product"
     >
-      <div className='relative aspect-square overflow-hidden bg-gray-100 p-2'>
+      {/* ✅ FIXED HEIGHT — NO aspect-square */}
+      <div className='relative w-full h-36 sm:h-44 overflow-hidden bg-gray-100'>
         <img
           src={product.image_url || "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YzZjRmNiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="}
           alt={product.title}
           loading='lazy'
           decoding='async'
           itemProp="image"
-          className='w-full h-full object-contain'
+          className='w-full h-full object-cover'
         />
 
         {isNew && (
-          <div className='absolute top-2 left-2 bg-emerald-500 text-white px-2 py-0.5 rounded-lg text-[10px] font-bold shadow-md z-10'>
+          <div className='absolute top-1.5 left-1.5 bg-emerald-500 text-white px-1.5 py-0.5 rounded text-[9px] font-bold z-10'>
             NEW
           </div>
         )}
 
-        <div className='absolute top-2 right-2 bg-white/95 text-gray-700 px-1.5 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold shadow-md flex items-center gap-1 z-10 border border-gray-200'>
-          <Eye className='w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#0a4d3c]' />
-          <span>{product.views || 0}</span>
-        </div>
-
-        <div className='absolute bottom-2 right-2 bg-black/60 text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-md pointer-events-none'>
-          Swabi Market
+        <div className='absolute top-1.5 right-1.5 bg-white/95 text-gray-700 px-1.5 py-0.5 rounded text-[9px] font-bold z-10 border border-gray-200'>
+          <Eye className='w-2.5 h-2.5 inline text-[#0a4d3c]' /> {product.views || 0}
         </div>
       </div>
 
-      <div className='p-2.5 sm:p-3 flex flex-col gap-1.5 flex-1 justify-between'>
+      <div className='p-2 sm:p-2.5 flex flex-col gap-1 flex-1 justify-between'>
         <div>
           <h3
-            className='text-xs sm:text-base font-bold text-gray-800 truncate leading-tight'
+            className='text-[11px] sm:text-sm font-bold text-gray-800 truncate leading-tight'
             itemProp="name"
           >
             {product.title}
           </h3>
           <p
-            className='text-[#0a4d3c] font-black text-xs sm:text-base mt-0.5 sm:mt-1'
+            className='text-[#0a4d3c] font-black text-[11px] sm:text-sm mt-0.5'
             itemProp="price"
             content={product.price}
           >
@@ -138,24 +134,24 @@ const ProductCard = memo(({ product }) => {
           </p>
 
           {product.totalRatings > 0 && (
-            <div className='flex items-center gap-1 mt-0.5'>
-              <Star className='w-3 h-3 fill-[#D4AF37] text-[#D4AF37]' />
-              <span className='text-[10px] sm:text-xs font-bold text-gray-700'>
+            <div className='flex items-center gap-0.5 mt-0.5'>
+              <Star className='w-2.5 h-2.5 fill-[#D4AF37] text-[#D4AF37]' />
+              <span className='text-[9px] sm:text-[10px] font-bold text-gray-700'>
                 {product.avgRating.toFixed(1)}
               </span>
-              <span className='text-[9px] sm:text-[10px] text-gray-400 font-medium'>
+              <span className='text-[8px] sm:text-[9px] text-gray-400'>
                 ({product.totalRatings})
               </span>
             </div>
           )}
         </div>
 
-        <div className='flex flex-col gap-1.5 pt-1.5 border-t border-gray-100 mt-1'>
-          <div className='flex items-center justify-between gap-1 text-gray-500 text-[10px] sm:text-xs'>
-            <div className='flex items-center gap-1 truncate'>
-              <MapPin className='w-3 h-3 text-red-500 shrink-0' />
+        <div className='flex flex-col gap-1 pt-1 border-t border-gray-100 mt-0.5'>
+          <div className='flex items-center justify-between gap-1 text-gray-500 text-[9px] sm:text-[10px]'>
+            <div className='flex items-center gap-0.5 truncate'>
+              <MapPin className='w-2.5 h-2.5 text-red-500 shrink-0' />
               <span className='truncate font-medium text-gray-600'>
-                {product.location || "Swabi, KP"}
+                {product.location || "Swabi"}
               </span>
             </div>
             <span className='text-gray-400 font-medium shrink-0'>
@@ -165,9 +161,9 @@ const ProductCard = memo(({ product }) => {
 
           <Link
             to={`/singleproductdetails/${product.id}?ref=home`}
-            className='w-full flex items-center justify-center gap-1 border border-[#0a4d3c] text-[#0a4d3c] hover:bg-[#0a4d3c] hover:text-white font-semibold text-[11px] sm:text-xs py-1.5 sm:py-2 rounded-lg sm:rounded-xl transition-colors'
+            className='w-full flex items-center justify-center gap-1 border border-[#0a4d3c] text-[#0a4d3c] font-semibold text-[10px] sm:text-xs py-1.5 rounded-lg'
           >
-            <Eye className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
+            <Eye className='w-3 h-3' />
             <span>View Details</span>
           </Link>
         </div>
@@ -227,7 +223,7 @@ export const Home = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
 
-  // ✅ Debounce — 250ms
+  // ✅ Debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -296,7 +292,6 @@ export const Home = () => {
     return [...withAds, ...withoutAds];
   }, [categoryCounts]);
 
-  // ✅ 8 categories default
   const visibleCategories = useMemo(() => {
     return showAllCategories ? sortedCategories : sortedCategories.slice(0, 8);
   }, [showAllCategories, sortedCategories]);
