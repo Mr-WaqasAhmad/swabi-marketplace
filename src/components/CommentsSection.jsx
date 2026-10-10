@@ -1,28 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, Send, Trash2, Loader2, User2, Star, Check } from 'lucide-react';
+import { MessageCircle, Send, Trash2, Loader2, User2, Star, Check, Reply, X } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
 // ============================================
-// 📋 COMMENTS HELPERS
+// 📋 FETCH COMMENTS (with replies)
 // ============================================
-
 const fetchComments = async (postId) => {
-  // Step 1: Comments fetch karein
+  // 1. All comments (top-level + replies)
   const { data: commentsData, error: commentsError } = await supabase
     .from('comments')
-    .select('id, content, created_at, user_id, post_id')
+    .select('id, content, created_at, user_id, post_id, parent_id')
     .eq('post_id', postId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: true });
 
   if (commentsError) throw new Error(commentsError.message);
   if (!commentsData || commentsData.length === 0) return [];
 
-  // Step 2: Unique user IDs
+  // 2. Get unique user IDs
   const userIds = [...new Set(commentsData.map((c) => c.user_id))];
 
-  // Step 3: Profiles fetch karein
+  // 3. Profiles
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
     .select('id, full_name')
@@ -30,40 +29,42 @@ const fetchComments = async (postId) => {
 
   if (profilesError) console.warn('Profiles fetch warning:', profilesError.message);
 
-  // Step 4: Map
   const profilesMap = {};
   (profilesData || []).forEach((p) => {
     profilesMap[p.id] = p;
   });
 
-  // Step 5: Merge
-  return commentsData.map((comment) => ({
+  // 4. Separate top-level and replies
+  const topLevel = [];
+  const repliesMap = {};
+
+  commentsData.forEach((comment) => {
+    const enriched = {
+      ...comment,
+      profiles: profilesMap[comment.user_id] || { full_name: 'User' },
+    };
+
+    if (comment.parent_id) {
+      if (!repliesMap[comment.parent_id]) repliesMap[comment.parent_id] = [];
+      repliesMap[comment.parent_id].push(enriched);
+    } else {
+      topLevel.push(enriched);
+    }
+  });
+
+  // 5. Sort top-level by newest first
+  topLevel.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // 6. Attach replies
+  return topLevel.map((comment) => ({
     ...comment,
-    profiles: profilesMap[comment.user_id] || { full_name: 'User' },
+    replies: repliesMap[comment.id] || [],
   }));
 };
 
-const getTimeAgo = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHr = Math.floor(diffMs / 3600000);
-  const diffDay = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return 'Just now';
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay === 1) return 'Yesterday';
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
-};
-
 // ============================================
-// ⭐ RATINGS HELPERS
+// ⭐ FETCH RATINGS
 // ============================================
-
 const fetchRatings = async (postId) => {
   const { data, error } = await supabase
     .from('ratings')
@@ -86,9 +87,28 @@ const fetchRatings = async (postId) => {
 };
 
 // ============================================
+// ⏰ TIME AGO
+// ============================================
+const getTimeAgo = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMs / 3600000);
+  const diffDay = Math.floor(diffMs / 86400000);
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString('en-PK', { day: 'numeric', month: 'short' });
+};
+
+// ============================================
 // ⭐ STAR COMPONENTS
 // ============================================
-
 const RatingDisplay = ({ rating = 0, size = 'sm', showNumber = false }) => {
   const sizeClass = {
     xs: 'w-3 h-3',
@@ -155,9 +175,89 @@ const RatingInput = ({ value = 0, onChange, disabled = false }) => {
 };
 
 // ============================================
-// 🎯 MAIN COMPONENT — Comments + Ratings
+// 💬 COMMENT ITEM (memoized)
 // ============================================
+const CommentItem = memo(({ comment, isOwner, onDelete, onReply, isReply = false, currentUser }) => {
+  const authorName = comment.profiles?.full_name || 'User';
+  const authorInitial = authorName.trim()[0]?.toUpperCase() || 'U';
 
+  return (
+    <div className={`flex gap-2 sm:gap-3 ${isReply ? 'mt-3' : ''}`}>
+      <div className={`${isReply ? 'w-7 h-7 text-xs' : 'w-9 h-9 sm:w-10 sm:h-10'} rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold shrink-0`}>
+        {authorInitial}
+      </div>
+      <div className='flex-1 min-w-0'>
+        <div className={`${isReply ? 'bg-white' : 'bg-gray-50'} border border-gray-100 rounded-2xl p-3`}>
+          <div className='flex items-center justify-between gap-2 mb-1 flex-wrap'>
+            <div className='flex items-center gap-1.5'>
+              <span className='font-bold text-gray-800 text-xs sm:text-sm truncate'>
+                {authorName}
+              </span>
+              {isOwner && (
+                <span className='text-[9px] font-bold text-[#0a4d3c] bg-[#effffb] px-1.5 py-0.5 rounded'>
+                  You
+                </span>
+              )}
+            </div>
+            <div className='flex items-center gap-1.5 shrink-0'>
+              <span className='text-[10px] text-gray-400 font-medium'>
+                {getTimeAgo(comment.created_at)}
+              </span>
+              {isOwner && (
+                <button
+                  onClick={() => onDelete(comment.id)}
+                  className='text-red-400 hover:text-red-600 p-1 hover:bg-red-50 rounded transition-colors cursor-pointer'
+                  aria-label='Delete comment'
+                  title='Delete'
+                >
+                  <Trash2 className='w-3 h-3' />
+                </button>
+              )}
+            </div>
+          </div>
+          <p className='text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words'>
+            {comment.content}
+          </p>
+
+          {/* Reply Button (only for top-level) */}
+          {!isReply && currentUser && (
+            <button
+              type='button'
+              onClick={() => onReply(comment.id, authorName)}
+              className='mt-2 text-[10px] sm:text-xs font-bold text-[#0a4d3c] hover:text-[#D4AF37] transition-colors cursor-pointer flex items-center gap-1'
+            >
+              <Reply className='w-3 h-3' />
+              Reply
+            </button>
+          )}
+        </div>
+
+        {/* Nested Replies */}
+        {!isReply && comment.replies && comment.replies.length > 0 && (
+          <div className='ml-2 sm:ml-4 pl-2 sm:pl-3 border-l-2 border-gray-100 mt-2'>
+            {comment.replies.map((reply) => (
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                isOwner={currentUser?.id === reply.user_id}
+                onDelete={onDelete}
+                onReply={onReply}
+                isReply={true}
+                currentUser={currentUser}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+CommentItem.displayName = 'CommentItem';
+
+// ============================================
+// 🎯 MAIN COMPONENT
+// ============================================
 export const CommentsSection = ({ postId }) => {
   const { user } = useUser();
   const queryClient = useQueryClient();
@@ -165,6 +265,8 @@ export const CommentsSection = ({ postId }) => {
   // Comments state
   const [newComment, setNewComment] = useState('');
   const [commentError, setCommentError] = useState('');
+  const [replyTo, setReplyTo] = useState(null); // { id, name }
+  const [replyText, setReplyText] = useState('');
 
   // Ratings state
   const [ratingError, setRatingError] = useState('');
@@ -173,7 +275,6 @@ export const CommentsSection = ({ postId }) => {
   // ============================================
   // 📋 COMMENTS QUERIES
   // ============================================
-
   const { data: comments, isLoading: commentsLoading } = useQuery({
     queryKey: ['comments', postId],
     queryFn: () => fetchComments(postId),
@@ -182,7 +283,7 @@ export const CommentsSection = ({ postId }) => {
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: async (content) => {
+    mutationFn: async ({ content, parentId }) => {
       if (!user?.id) throw new Error('Login required');
       const { error } = await supabase
         .from('comments')
@@ -190,12 +291,15 @@ export const CommentsSection = ({ postId }) => {
           post_id: postId,
           user_id: user.id,
           content: content.trim(),
+          parent_id: parentId || null,
         }]);
       if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['comments', postId]);
       setNewComment('');
+      setReplyText('');
+      setReplyTo(null);
       setCommentError('');
     },
     onError: (err) => {
@@ -222,7 +326,6 @@ export const CommentsSection = ({ postId }) => {
   // ============================================
   // ⭐ RATINGS QUERIES
   // ============================================
-
   const { data: ratingsData, isLoading: ratingsLoading } = useQuery({
     queryKey: ['ratings', postId],
     queryFn: () => fetchRatings(postId),
@@ -231,7 +334,6 @@ export const CommentsSection = ({ postId }) => {
   });
 
   const { ratings = [], total = 0, average = 0, breakdown = {} } = ratingsData || {};
-
   const userRating = user ? ratings.find((r) => r.user_id === user.id) : null;
 
   const submitRatingMutation = useMutation({
@@ -257,7 +359,7 @@ export const CommentsSection = ({ postId }) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['ratings', postId]);
-      queryClient.invalidateQueries(['products']); // Home page ke liye
+      queryClient.invalidateQueries(['products']);
       setRatingSuccess('Shukriya! Aap ki rating save ho gayi.');
       setRatingError('');
       setTimeout(() => setRatingSuccess(''), 3000);
@@ -271,7 +373,6 @@ export const CommentsSection = ({ postId }) => {
   // ============================================
   // 🎯 HANDLERS
   // ============================================
-
   const handleCommentSubmit = (e) => {
     e.preventDefault();
     if (!user) {
@@ -286,7 +387,25 @@ export const CommentsSection = ({ postId }) => {
       setCommentError('Comment 500 characters se zyada nahi ho sakta.');
       return;
     }
-    addCommentMutation.mutate(newComment);
+    addCommentMutation.mutate({ content: newComment, parentId: null });
+  };
+
+  const handleReplySubmit = (e) => {
+    e.preventDefault();
+    if (!replyTo) return;
+    if (!replyText.trim()) return;
+    if (replyText.length > 500) return;
+    addCommentMutation.mutate({ content: replyText, parentId: replyTo.id });
+  };
+
+  const handleReplyClick = (commentId, authorName) => {
+    setReplyTo({ id: commentId, name: authorName });
+    setReplyText('');
+  };
+
+  const handleCancelReply = () => {
+    setReplyTo(null);
+    setReplyText('');
   };
 
   const handleCommentDelete = (commentId) => {
@@ -309,15 +428,13 @@ export const CommentsSection = ({ postId }) => {
   // ============================================
   // 🎨 RENDER
   // ============================================
-
   return (
-    <div className='flex flex-col gap-6 mt-12'>
+    <div className='flex flex-col gap-6'>
 
       {/* ============================================
           ⭐ RATINGS SECTION
           ============================================ */}
       <section className='bg-white border border-gray-200 rounded-3xl p-5 sm:p-7 shadow-sm'>
-        {/* Header */}
         <div className='flex items-center gap-2 border-b border-gray-100 pb-4 mb-5'>
           <Star className='w-5 h-5 text-[#D4AF37] fill-[#D4AF37]' />
           <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
@@ -335,7 +452,6 @@ export const CommentsSection = ({ postId }) => {
           </div>
         ) : (
           <>
-            {/* Success/Error */}
             {ratingError && (
               <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm rounded-xl font-medium'>
                 {ratingError}
@@ -349,8 +465,7 @@ export const CommentsSection = ({ postId }) => {
             )}
 
             <div className='grid grid-cols-1 sm:grid-cols-2 gap-6'>
-              {/* Left: Average */}
-              <div className='flex flex-col items-center justify-center bg-gradient-to-br from-[#effffb] to-white border border-emerald-100 rounded-2xl p-5'>
+              <div className='flex flex-col items-center justify-center bg-[#effffb] border border-emerald-100 rounded-2xl p-5'>
                 <div className='text-5xl sm:text-6xl font-black text-[#0a4d3c]'>
                   {average > 0 ? average.toFixed(1) : '0.0'}
                 </div>
@@ -362,7 +477,6 @@ export const CommentsSection = ({ postId }) => {
                 </p>
               </div>
 
-              {/* Right: Breakdown */}
               <div className='flex flex-col gap-1.5 justify-center'>
                 {[5, 4, 3, 2, 1].map((star) => {
                   const count = breakdown[star] || 0;
@@ -373,7 +487,7 @@ export const CommentsSection = ({ postId }) => {
                       <Star className='w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37] shrink-0' />
                       <div className='flex-1 h-2 bg-gray-100 rounded-full overflow-hidden'>
                         <div
-                          className='h-full bg-gradient-to-r from-[#D4AF37] to-[#b8962e] rounded-full transition-all duration-500'
+                          className='h-full bg-[#D4AF37] rounded-full transition-all duration-500'
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -386,7 +500,6 @@ export const CommentsSection = ({ postId }) => {
               </div>
             </div>
 
-            {/* User Rating Input */}
             <div className='mt-6 pt-6 border-t border-gray-100'>
               {user ? (
                 <div className='flex flex-col items-center gap-3'>
@@ -426,7 +539,6 @@ export const CommentsSection = ({ postId }) => {
           💬 COMMENTS SECTION
           ============================================ */}
       <section className='bg-white border border-gray-200 rounded-3xl p-5 sm:p-7 shadow-sm'>
-        {/* Header */}
         <div className='flex items-center gap-2 border-b border-gray-100 pb-4 mb-5'>
           <MessageCircle className='w-5 h-5 text-[#0a4d3c]' />
           <h2 className='text-lg sm:text-xl font-bold text-gray-800'>
@@ -437,7 +549,6 @@ export const CommentsSection = ({ postId }) => {
           </span>
         </div>
 
-        {/* Error */}
         {commentError && (
           <div className='mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm rounded-xl font-medium'>
             {commentError}
@@ -471,9 +582,9 @@ export const CommentsSection = ({ postId }) => {
                   <button
                     type='submit'
                     disabled={addCommentMutation.isPending || !newComment.trim()}
-                    className='flex items-center gap-1.5 bg-[#0a4d3c] hover:bg-[#07382c] text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='flex items-center gap-1.5 bg-[#0a4d3c] hover:bg-[#07382c] text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
                   >
-                    {addCommentMutation.isPending ? (
+                    {addCommentMutation.isPending && !replyTo ? (
                       <Loader2 className='w-3.5 h-3.5 animate-spin' />
                     ) : (
                       <Send className='w-3.5 h-3.5' />
@@ -510,51 +621,67 @@ export const CommentsSection = ({ postId }) => {
           </div>
         ) : (
           <div className='flex flex-col gap-4'>
-            {comments?.map((comment) => {
-              const isOwner = user?.id === comment.user_id;
-              const authorName = comment.profiles?.full_name || 'User';
-              const authorInitial = authorName.trim()[0]?.toUpperCase() || 'U';
+            {comments?.map((comment) => (
+              <div key={comment.id}>
+                <CommentItem
+                  comment={comment}
+                  isOwner={user?.id === comment.user_id}
+                  onDelete={handleCommentDelete}
+                  onReply={handleReplyClick}
+                  currentUser={user}
+                />
 
-              return (
-                <div key={comment.id} className='flex gap-2 sm:gap-3'>
-                  <div className='w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold shrink-0 text-sm'>
-                    {authorInitial}
-                  </div>
-                  <div className='flex-1 min-w-0'>
-                    <div className='bg-gray-50 border border-gray-100 rounded-2xl p-3'>
-                      <div className='flex items-center justify-between gap-2 mb-1'>
-                        <span className='font-bold text-gray-800 text-xs sm:text-sm truncate'>
-                          {authorName}
+                {/* Reply Input (Inline) */}
+                {replyTo?.id === comment.id && (
+                  <form onSubmit={handleReplySubmit} className='mt-3 ml-11 sm:ml-13 flex gap-2'>
+                    <div className='flex-1'>
+                      <div className='flex items-center justify-between mb-1'>
+                        <span className='text-[10px] font-bold text-gray-600'>
+                          Replying to <span className='text-[#0a4d3c]'>{replyTo.name}</span>
                         </span>
-                        <div className='flex items-center gap-1.5 shrink-0'>
-                          <span className='text-[10px] text-gray-400 font-medium'>
-                            {getTimeAgo(comment.created_at)}
-                          </span>
-                          {isOwner && (
-                            <button
-                              onClick={() => handleCommentDelete(comment.id)}
-                              disabled={deleteCommentMutation.isPending}
-                              className='text-red-400 hover:text-red-600 transition-all cursor-pointer p-1 hover:bg-red-50 rounded-lg disabled:opacity-50'
-                              aria-label='Delete comment'
-                              title='Delete comment'
-                            >
-                              {deleteCommentMutation.isPending ? (
-                                <Loader2 className='w-3.5 h-3.5 animate-spin' />
-                              ) : (
-                                <Trash2 className='w-3.5 h-3.5' />
-                              )}
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          type='button'
+                          onClick={handleCancelReply}
+                          className='text-gray-400 hover:text-gray-600 cursor-pointer'
+                        >
+                          <X className='w-3 h-3' />
+                        </button>
                       </div>
-                      <p className='text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line break-words'>
-                        {comment.content}
-                      </p>
+                      <textarea
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder='Apna reply likhein...'
+                        rows='2'
+                        maxLength={500}
+                        autoFocus
+                        className='w-full border border-gray-300 focus:border-[#0a4d3c] rounded-xl p-2.5 text-xs sm:text-sm outline-none focus:ring-2 focus:ring-[#0a4d3c]/20 resize-none'
+                      />
+                      <div className='flex items-center justify-end gap-2 mt-2'>
+                        <button
+                          type='button'
+                          onClick={handleCancelReply}
+                          className='text-xs font-semibold text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg cursor-pointer'
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type='submit'
+                          disabled={addCommentMutation.isPending || !replyText.trim()}
+                          className='flex items-center gap-1.5 bg-[#0a4d3c] hover:bg-[#07382c] text-white text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer disabled:opacity-50'
+                        >
+                          {addCommentMutation.isPending ? (
+                            <Loader2 className='w-3 h-3 animate-spin' />
+                          ) : (
+                            <Send className='w-3 h-3' />
+                          )}
+                          <span>Reply</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  </form>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </section>
