@@ -14,10 +14,16 @@
   <meta name="description"
     content="Swabi ka sabse bada online marketplace. Mobiles, gaadiyan, property, electronics aur hazaron cheezein apne elaqay mein khareedein aur bechein. Free ads posting!" />
   <meta name="keywords"
-    content="Swabi Market, Swabi OLX, Buy Sell Swabi, Swabi Classifieds, KPK Marketplace, Swabi Online Bazaar, Pakistan Marketplace" />
+    content="Swabi Market, Swabi OLX, Buy Sell Swabi, Swabi Classifieds, KPK Marketplace, Swabi Online Bazaar, Pakistan Marketplace, Swabi Ads, Swabi Buy Sell" />
   <meta name="author" content="Waqas Ahmad" />
   <meta name="robots" content="index, follow" />
   <meta name="language" content="English" />
+
+  <!-- ✅ Site Name — Google ke liye (Multiple Signals) -->
+  <meta name="application-name" content="Swabi Market" />
+  <meta name="apple-mobile-web-app-title" content="Swabi Market" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
   <!-- Open Graph / Facebook / WhatsApp -->
   <meta property="og:type" content="website" />
@@ -26,6 +32,8 @@
   <meta property="og:description"
     content="Swabi ka sabse bada online marketplace. Free ads posting aur hazaron deals." />
   <meta property="og:image" content="https://skpk.vercel.app/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:site_name" content="Swabi Market" />
   <meta property="og:locale" content="en_PK" />
 
@@ -42,34 +50,92 @@
   <!-- Geo Tags -->
   <meta name="geo.region" content="PK-KP" />
   <meta name="geo.placename" content="Swabi" />
+  <meta name="geo.position" content="34.1167;72.4667" />
+  <meta name="ICBM" content="34.1167, 72.4667" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
   <!-- Favicons -->
-  <!-- Favicons — Google ke liye optimized -->
-<link rel="icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png" />
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-<link rel="icon" type="image/x-icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-  <!-- Structured Data - Organization -->
+  <link rel="icon" type="image/png" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+  <!-- ✅ Structured Data — WebSite + Organization (Graph) -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Swabi Market",
-      "url": "https://skpk.vercel.app",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": "https://skpk.vercel.app/?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://skpk.vercel.app/#website",
+          "url": "https://skpk.vercel.app/",
+          "name": "Swabi Market",
+          "alternateName": ["Swabi Marketplace", "Swabi Online Bazar", "Swabi Classifieds", "Swabi OLX"],
+          "description": "Swabi ka sabse bada online marketplace. Mobiles, gaadiyan, property, electronics aur hazaron cheezein apne elaqay mein khareedein aur bechein.",
+          "inLanguage": "en-PK",
+          "publisher": {
+            "@id": "https://skpk.vercel.app/#organization"
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://skpk.vercel.app/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://skpk.vercel.app/#organization",
+          "name": "Swabi Market",
+          "alternateName": "Swabi Marketplace",
+          "url": "https://skpk.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://skpk.vercel.app/apple-touch-icon.png",
+            "width": 180,
+            "height": 180
+          },
+          "image": "https://skpk.vercel.app/og-image.jpg",
+          "description": "Swabi ka sabse bada online marketplace. Free ads posting.",
+          "founder": {
+            "@type": "Person",
+            "name": "Waqas Ahmad"
+          },
+          "foundingDate": "2026",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Swabi",
+            "addressRegion": "Khyber Pakhtunkhwa",
+            "addressCountry": "PK"
+          },
+          "areaServed": {
+            "@type": "City",
+            "name": "Swabi"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "email": "wa9580670@gmail.com",
+            "availableLanguage": ["English", "Urdu", "Pashto"]
+          },
+          "sameAs": [
+            "https://github.com/Mr-WaqasAhmad",
+            "https://www.facebook.com/profile.php?id=100081875383531"
+          ]
+        }
+      ]
     }
   </script>
+
+  <!-- Preconnect Supabase -->
   <link rel="preconnect" href="https://faaxzhqkwzihkiyjhbqj.supabase.co" />
-  <link rel="dns-prefetch" href="https://faaxzhqkwzihkiyjhbqj.supabase.co" /> 
+  <link rel="dns-prefetch" href="https://faaxzhqkwzihkiyjhbqj.supabase.co" />
 </head>
 
 <body>
