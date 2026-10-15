@@ -5,7 +5,9 @@ import { ArrowLeft, Send, Loader2, User2, MessageCircle } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 
-// ✅ Conversation + messages fetch
+// ============================================
+// ✅ FETCH
+// ============================================
 const fetchConversationData = async (postId, userId) => {
   const { data: post, error: postError } = await supabase
     .from('posts')
@@ -143,6 +145,7 @@ export const Chat = () => {
   const messagesContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const typingChannelRef = useRef(null);
+  const hasMarkedReadRef = useRef(false);
 
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -188,7 +191,7 @@ export const Chat = () => {
     };
   }, [conversation?.id, queryClient, postId, user?.id]);
 
-  // ✅ Typing indicator — Broadcast
+  // ✅ Typing indicator
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
 
@@ -217,15 +220,13 @@ export const Chat = () => {
     };
   }, [conversation?.id, user?.id]);
 
-  // ✅ Presence — COMMON channel (conversation-based)
+  // ✅ Presence
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
 
     const channel = supabase.channel(`presence-conv-${conversation.id}`, {
       config: {
-        presence: {
-          key: user.id,
-        },
+        presence: { key: user.id },
       },
     });
 
@@ -265,21 +266,68 @@ export const Chat = () => {
     }
   }, [messages, otherUserTyping]);
 
-  // ✅ Mark messages as read
+  // ✅ FIX: Mark messages as read — TURANT update
   useEffect(() => {
     if (!conversation?.id || !user?.id || messages.length === 0) return;
+    if (hasMarkedReadRef.current) return; // ✅ Ek hi baar chalega
 
     const isBuyer = user.id === conversation.buyer_id;
     const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread';
     const currentUnread = conversation[unreadField] || 0;
 
-    if (currentUnread === 0) return;
+    if (currentUnread === 0) {
+      hasMarkedReadRef.current = true;
+      return;
+    }
+
+    const hasUnreadFromOther = messages.some(
+      (m) => m.sender_id !== user.id && !m.is_read
+    );
+
+    if (!hasUnreadFromOther) {
+      hasMarkedReadRef.current = true;
+      return;
+    }
+
+    const markRead = async () => {
+      hasMarkedReadRef.current = true;
+
+      // 1. Messages update
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversation.id)
+        .neq('sender_id', user.id)
+        .eq('is_read', false);
+
+      // 2. Conversation update
+      await supabase
+        .from('conversations')
+        .update({ [unreadField]: 0 })
+        .eq('id', conversation.id);
+
+      // ✅ FIX: TURANT invalidate all queries
+      queryClient.invalidateQueries(['conversations', user?.id]);
+      queryClient.invalidateQueries(['header-unread']);
+      queryClient.invalidateQueries(['chat', postId, user?.id]);
+    };
+
+    markRead();
+  }, [conversation?.id, conversation?.buyer_id, conversation, messages, user?.id, queryClient, postId]);
+
+  // ✅ FIX: Naya message aane pe mark as read
+  useEffect(() => {
+    if (!conversation?.id || !user?.id) return;
+    if (!messages.length) return;
 
     const hasUnreadFromOther = messages.some(
       (m) => m.sender_id !== user.id && !m.is_read
     );
 
     if (!hasUnreadFromOther) return;
+
+    const isBuyer = user.id === conversation.buyer_id;
+    const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread';
 
     const markRead = async () => {
       await supabase
@@ -299,9 +347,8 @@ export const Chat = () => {
     };
 
     markRead();
-  }, [conversation?.id, conversation?.buyer_id, messages, user?.id, queryClient, conversation]);
+  }, [messages, conversation?.id, conversation?.buyer_id, user?.id, queryClient, conversation]);
 
-  // ✅ Input change — typing broadcast
   const handleInputChange = (e) => {
     const value = e.target.value;
     setNewMessage(value);
@@ -331,7 +378,6 @@ export const Chat = () => {
     }, 2000);
   };
 
-  // ✅ Send message
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !conversation?.id || !user?.id) return;
@@ -421,7 +467,7 @@ export const Chat = () => {
           </p>
           <Link
             to="/messages"
-            className='inline-flex items-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all'
+            className='inline-flex items-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors'
           >
             <span>All Messages</span>
           </Link>
@@ -461,7 +507,6 @@ export const Chat = () => {
               {otherName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
             </div>
 
-            {/* Online dot */}
             <span
               className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white transition-colors ${
                 otherUserOnline ? 'bg-emerald-500' : 'bg-gray-400'
@@ -504,6 +549,7 @@ export const Chat = () => {
               src={post.image_url}
               alt={post.title}
               className='w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0'
+              loading='lazy'
             />
             <div className='flex-1 min-w-0'>
               <p className='text-[11px] sm:text-xs font-bold text-gray-800 truncate'>
@@ -617,7 +663,7 @@ export const Chat = () => {
           <button
             type='submit'
             disabled={isSending || !newMessage.trim()}
-            className='bg-[#0a4d3c] hover:bg-[#07382c] text-white p-2.5 rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0'
+            className='bg-[#0a4d3c] hover:bg-[#07382c] text-white p-2.5 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0'
             aria-label='Send'
           >
             {isSending ? (
