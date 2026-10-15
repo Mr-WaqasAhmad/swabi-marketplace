@@ -84,20 +84,22 @@ export const Messages = () => {
     queryFn: () => fetchConversations(user.id),
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 2,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  // ✅ Realtime — naye messages pe update (light)
+  // ✅ Realtime — conversations updates pe TURANT invalidate
   useEffect(() => {
     if (!user?.id) return;
 
     const channel = supabase
-      .channel('messages-list')
+      .channel('messages-list-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'conversations' },
         () => {
           queryClient.invalidateQueries(['conversations', user.id]);
+          queryClient.invalidateQueries(['header-unread']);
         }
       )
       .subscribe();
@@ -107,7 +109,7 @@ export const Messages = () => {
     };
   }, [user?.id, queryClient]);
 
-  // ✅ Presence — 1 single channel, sab ke liye
+  // ✅ Presence — 1 single channel
   useEffect(() => {
     if (!user?.id) return;
 
@@ -255,7 +257,7 @@ export const Messages = () => {
               </p>
               <Link
                 to="/home"
-                className='inline-flex items-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow transition-all'
+                className='inline-flex items-center gap-2 bg-[#0a4d3c] hover:bg-[#07382c] text-white font-semibold text-sm px-5 py-2.5 rounded-xl shadow transition-colors'
               >
                 <span>Browse Products</span>
               </Link>
@@ -272,7 +274,7 @@ export const Messages = () => {
                 return (
                   <div
                     key={conv.id}
-                    className={`relative flex items-center gap-3 bg-white border rounded-2xl shadow-sm hover:shadow-md transition-shadow ${
+                    className={`relative flex items-center gap-3 bg-white border rounded-2xl shadow-sm transition-colors ${
                       hasUnread ? 'border-[#0a4d3c]/30 bg-[#effffb]/30' : 'border-gray-200'
                     } ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
                   >
