@@ -196,9 +196,7 @@ export const Chat = () => {
     if (!conversation?.id || !user?.id) return;
 
     const channel = supabase.channel(`typing-${conversation.id}`, {
-      config: {
-        broadcast: { self: false },
-      },
+      config: { broadcast: { self: false } },
     });
 
     channel
@@ -225,9 +223,7 @@ export const Chat = () => {
     if (!conversation?.id || !user?.id) return;
 
     const channel = supabase.channel(`presence-conv-${conversation.id}`, {
-      config: {
-        presence: { key: user.id },
-      },
+      config: { presence: { key: user.id } },
     });
 
     channel
@@ -266,10 +262,10 @@ export const Chat = () => {
     }
   }, [messages, otherUserTyping]);
 
-  // ✅ FIX: Mark messages as read — TURANT update
+  // ✅ Mark messages as read — pehli baar
   useEffect(() => {
     if (!conversation?.id || !user?.id || messages.length === 0) return;
-    if (hasMarkedReadRef.current) return; // ✅ Ek hi baar chalega
+    if (hasMarkedReadRef.current) return;
 
     const isBuyer = user.id === conversation.buyer_id;
     const unreadField = isBuyer ? 'buyer_unread' : 'seller_unread';
@@ -292,7 +288,6 @@ export const Chat = () => {
     const markRead = async () => {
       hasMarkedReadRef.current = true;
 
-      // 1. Messages update
       await supabase
         .from('messages')
         .update({ is_read: true })
@@ -300,13 +295,11 @@ export const Chat = () => {
         .neq('sender_id', user.id)
         .eq('is_read', false);
 
-      // 2. Conversation update
       await supabase
         .from('conversations')
         .update({ [unreadField]: 0 })
         .eq('id', conversation.id);
 
-      // ✅ FIX: TURANT invalidate all queries
       queryClient.invalidateQueries(['conversations', user?.id]);
       queryClient.invalidateQueries(['header-unread']);
       queryClient.invalidateQueries(['chat', postId, user?.id]);
@@ -315,7 +308,7 @@ export const Chat = () => {
     markRead();
   }, [conversation?.id, conversation?.buyer_id, conversation, messages, user?.id, queryClient, postId]);
 
-  // ✅ FIX: Naya message aane pe mark as read
+  // ✅ Naya message aane pe mark as read
   useEffect(() => {
     if (!conversation?.id || !user?.id) return;
     if (!messages.length) return;
@@ -488,21 +481,21 @@ export const Chat = () => {
   return (
     <div
       className='w-full bg-gray-50 select-none flex flex-col'
-      style={{ height: 'calc(100vh - 4rem)', marginTop: '4rem' }}
+      style={{ height: 'calc(100dvh - 4rem)', marginTop: '4rem' }}
     >
-      <div className='max-w-3xl mx-auto w-full flex flex-col h-full px-2 sm:px-4 py-2'>
+      <div className='max-w-3xl mx-auto w-full flex flex-col h-full px-2 sm:px-4 py-2 min-h-0'>
 
         {/* Header */}
-        <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 shrink-0'>
+        <div className='bg-white border border-gray-200 rounded-t-2xl p-3 sm:p-4 shadow-sm flex items-center gap-3 flex-shrink-0'>
           <button
             onClick={() => navigate('/messages')}
-            className='p-2 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer shrink-0'
+            className='p-2 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer flex-shrink-0'
             aria-label='Back'
           >
             <ArrowLeft className='w-4 h-4 text-gray-700' />
           </button>
 
-          <div className='relative shrink-0'>
+          <div className='relative flex-shrink-0'>
             <div className='w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#3b053d] flex items-center justify-center text-white font-bold text-base'>
               {otherName.trim()[0]?.toUpperCase() || <User2 className='w-5 h-5' />}
             </div>
@@ -524,7 +517,7 @@ export const Chat = () => {
                 {otherName}
               </h1>
               {otherUserOnline && (
-                <span className='text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full shrink-0'>
+                <span className='text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full flex-shrink-0'>
                   Online
                 </span>
               )}
@@ -543,12 +536,12 @@ export const Chat = () => {
         {post && (
           <Link
             to={`/singleproductdetails/${postId}`}
-            className='bg-[#effffb] border border-emerald-100 border-t-0 px-3 sm:px-4 py-2 flex items-center gap-2.5 hover:bg-[#dffff5] transition-colors shrink-0'
+            className='bg-[#effffb] border border-emerald-100 border-t-0 px-3 sm:px-4 py-2 flex items-center gap-2.5 hover:bg-[#dffff5] transition-colors flex-shrink-0'
           >
             <img
               src={post.image_url}
               alt={post.title}
-              className='w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0'
+              className='w-9 h-9 rounded-lg object-cover border border-gray-200 flex-shrink-0'
               loading='lazy'
             />
             <div className='flex-1 min-w-0'>
@@ -566,6 +559,7 @@ export const Chat = () => {
         <div
           ref={messagesContainerRef}
           className='flex-1 bg-white border border-gray-200 border-t-0 overflow-y-auto px-3 sm:px-4 py-4 flex flex-col gap-3 min-h-0'
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {messages.length === 0 ? (
             <div className='flex-1 flex flex-col items-center justify-center text-center px-4'>
@@ -637,14 +631,15 @@ export const Chat = () => {
         </div>
 
         {error && (
-          <div className='bg-red-50 border border-red-200 border-t-0 px-3 py-2 text-red-700 text-xs font-medium shrink-0'>
+          <div className='bg-red-50 border border-red-200 border-t-0 px-3 py-2 text-red-700 text-xs font-medium flex-shrink-0'>
             {error}
           </div>
         )}
 
+        {/* Input */}
         <form
           onSubmit={handleSend}
-          className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm shrink-0 mb-2'
+          className='bg-white border border-gray-200 border-t-0 rounded-b-2xl p-2.5 sm:p-3 flex items-end gap-2 shadow-sm flex-shrink-0 mb-2'
         >
           <textarea
             value={newMessage}
@@ -663,7 +658,7 @@ export const Chat = () => {
           <button
             type='submit'
             disabled={isSending || !newMessage.trim()}
-            className='bg-[#0a4d3c] hover:bg-[#07382c] text-white p-2.5 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0'
+            className='bg-[#0a4d3c] hover:bg-[#07382c] text-white p-2.5 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0'
             aria-label='Send'
           >
             {isSending ? (
