@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { useUser } from "../contexts/UserDetailsContext";
+import { showAlert } from "./CustomAlert"; // ✅ NAYA IMPORT
 
 export const UserPost = () => {
   const { user } = useUser();
@@ -64,7 +65,7 @@ export const UserPost = () => {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        alert("Update nahi hua — permission issue.");
+        showAlert("Update nahi hua — permission issue.", "error");
         return;
       }
 
@@ -73,10 +74,10 @@ export const UserPost = () => {
           item.id === postId ? { ...item, status: "sold" } : item
         )
       );
-      alert("Ad 'SOLD' mark ho gayi! ✅");
+      showAlert("Ad 'SOLD' mark ho gayi!", "success");
     } catch (err) {
       console.error("Mark sold error:", err.message);
-      alert("Mark nahi ho saka: " + err.message);
+      showAlert("Mark nahi ho saka: " + err.message, "error");
     } finally {
       setUpdatingId(null);
     }
@@ -100,7 +101,7 @@ export const UserPost = () => {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        alert("Update nahi hua — permission issue.");
+        showAlert("Update nahi hua — permission issue.", "error");
         return;
       }
 
@@ -109,10 +110,10 @@ export const UserPost = () => {
           item.id === postId ? { ...item, status: "active" } : item
         )
       );
-      alert("Ad dobara ACTIVE ho gayi! ✅");
+      showAlert("Ad dobara ACTIVE ho gayi!", "success");
     } catch (err) {
       console.error("Reactivate error:", err.message);
-      alert("Reactivate nahi ho saka: " + err.message);
+      showAlert("Reactivate nahi ho saka: " + err.message, "error");
     } finally {
       setUpdatingId(null);
     }
@@ -136,7 +137,7 @@ export const UserPost = () => {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        alert("Delete fail ho gaya! Supabase RLS Policy check karein.");
+        showAlert("Delete fail ho gaya! Supabase RLS Policy check karein.", "error");
         return;
       }
 
@@ -148,10 +149,10 @@ export const UserPost = () => {
       }
 
       setMyAds((prev) => prev.filter((item) => item.id !== postId));
-      alert("Ad kamyabi se delete ho gaya!");
+      showAlert("Ad kamyabi se delete ho gaya!", "success");
     } catch (err) {
       console.error("Delete error:", err.message);
-      alert("Ad delete nahi ho saka: " + err.message);
+      showAlert("Ad delete nahi ho saka: " + err.message, "error");
     } finally {
       setDeletingId(null);
     }
