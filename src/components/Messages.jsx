@@ -5,7 +5,7 @@ import { MessageCircle, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 import { SEO } from './SEO';
-import { showAlert } from './CustomAlert'; // ✅ NAYA IMPORT
+import { showAlert, showConfirm } from './CustomAlert'; // ✅ NAYA IMPORT
 
 const getTimeAgo = (dateString) => {
   if (!dateString) return '';
@@ -166,27 +166,26 @@ export const Messages = () => {
       queryClient.invalidateQueries(['conversations', user?.id]);
       queryClient.invalidateQueries(['header-unread']);
       setDeletingId(null);
+      showAlert("Chat successfully delete ho gayi!", "success"); // ✅ Custom Alert
     },
     onError: (err) => {
-      showAlert('Delete nahi hua: ' + err.message, 'error'); // ✅ YAHAN CHANGE HUA
+      showAlert('Delete nahi hua: ' + err.message, 'error'); // ✅ Custom Alert
       setDeletingId(null);
     },
   });
 
+  // ✅ Custom Confirm Dialog
   const handleDelete = (e, convId, otherName) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const confirmed = window.confirm(
-      `⚠️ Kya aap ${otherName} ke saath ye poori chat delete karna chahte hain?\n\n` +
-      `Saare messages hamesha ke liye delete ho jayenge.\n` +
-      `Yeh action undo nahi ho sakta.`
+    showConfirm(
+      `Kya aap ${otherName} ke saath ye poori chat delete karna chahte hain? Saare messages hamesha ke liye delete ho jayenge.`,
+      () => {
+        setDeletingId(convId);
+        deleteConversationMutation.mutate(convId);
+      }
     );
-
-    if (confirmed) {
-      setDeletingId(convId);
-      deleteConversationMutation.mutate(convId);
-    }
   };
 
   if (isLoading) {
