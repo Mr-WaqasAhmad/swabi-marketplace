@@ -5,6 +5,7 @@ import { MessageCircle, Loader2, ArrowLeft, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { useUser } from '../contexts/UserDetailsContext';
 import { SEO } from './SEO';
+import { showAlert } from './CustomAlert'; // ✅ NAYA IMPORT
 
 const getTimeAgo = (dateString) => {
   if (!dateString) return '';
@@ -167,7 +168,7 @@ export const Messages = () => {
       setDeletingId(null);
     },
     onError: (err) => {
-      alert('Delete nahi hua: ' + err.message);
+      showAlert('Delete nahi hua: ' + err.message, 'error'); // ✅ YAHAN CHANGE HUA
       setDeletingId(null);
     },
   });
