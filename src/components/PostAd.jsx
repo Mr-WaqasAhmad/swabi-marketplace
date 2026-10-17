@@ -4,6 +4,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import { useUser } from "../contexts/UserDetailsContext";
 import { categories } from "./CategorySelector";
+import { showAlert } from "./CustomAlert";
 
 export const PostAd = () => {
   const navigate = useNavigate();
@@ -210,7 +211,7 @@ export const PostAd = () => {
           throw new Error("Update nahi hua — permission issue.");
         }
 
-        alert("Ad successfully update ho gayi!");
+        showAlert("Ad successfully update ho gayi!", "success");
         navigate("/userpost");
       } else {
         // INSERT
@@ -229,7 +230,7 @@ export const PostAd = () => {
 
         if (dbError) throw dbError;
 
-        alert("Ad successfully publish ho gaya!");
+        showAlert("Ad successfully publish ho gaya!", "success");
         navigate("/userpost");
       }
     } catch (err) {
