@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { Header } from './components/Header'
 import { Footer } from './components/Footer'
 import { ScrollToTop } from './components/ScrollToTop';
+import { CustomAlert } from './components/CustomAlert';
 
 export const App = () => {
   const location = useLocation();
@@ -17,7 +18,7 @@ export const App = () => {
       <ScrollToTop />
       <Header />
       <Outlet />
-      {/* ✅ Chat aur Messages page pe Footer hide */}
+        <CustomAlert />
       {!isChatPage && !isMessagesPage && <Footer />}
     </>
   )
