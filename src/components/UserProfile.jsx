@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useUser } from "../contexts/UserDetailsContext";
 import { supabase } from "./supabaseClient";
+import { showAlert, showConfirm } from "./CustomAlert"; // ✅ NAYA IMPORT
 
 // Zod Schema
 const profileSchema = z.object({
@@ -122,10 +123,9 @@ export const UserProfile = () => {
         },
       }));
 
-      setFeedback({
-        type: "success",
-        message: "Profile successfully update ho gayi!",
-      });
+      // ✅ Success Alert
+      showAlert("Profile successfully update ho gayi!", "success");
+
     } catch (err) {
       setFeedback({
         type: "error",
@@ -144,45 +144,43 @@ export const UserProfile = () => {
       setUserData(null);
       window.location.href = "/login";
     } catch (err) {
-      setFeedback({
-        type: "error",
-        message: err.message || "Logout karne mein masla aaya.",
-      });
+      showAlert(err.message || "Logout karne mein masla aaya.", "error");
     } finally {
       setIsLoggingOut(false);
     }
   };
 
-  // Delete Account
-  const handleDeleteAccount = async () => {
-    const confirmDelete = window.confirm(
-      "Kya aap apna account aur tamam details hamesha ke liye delete karna chahte hain?"
+  // ✅ Delete Account (Using Custom Confirm)
+  const handleDeleteAccount = () => {
+    if (!user?.id) return;
+
+    showConfirm(
+      "Kya aap apna account aur tamam details hamesha ke liye delete karna chahte hain?",
+      async () => {
+        setIsDeleting(true);
+
+        try {
+          const { error: profileErr } = await supabase
+            .from("profiles")
+            .delete()
+            .eq("id", user.id);
+
+          if (profileErr) throw profileErr;
+
+          await supabase.rpc("delete_user");
+          await supabase.auth.signOut();
+
+          setUserData(null);
+          window.location.href = "/login";
+        } catch (err) {
+          await supabase.auth.signOut();
+          setUserData(null);
+          window.location.href = "/login";
+        } finally {
+          setIsDeleting(false);
+        }
+      }
     );
-
-    if (!confirmDelete || !user?.id) return;
-
-    setIsDeleting(true);
-
-    try {
-      const { error: profileErr } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", user.id);
-
-      if (profileErr) throw profileErr;
-
-      await supabase.rpc("delete_user");
-      await supabase.auth.signOut();
-
-      setUserData(null);
-      window.location.href = "/login";
-    } catch (err) {
-      await supabase.auth.signOut();
-      setUserData(null);
-      window.location.href = "/login";
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   const memberSince = user?.created_at
@@ -215,15 +213,9 @@ export const UserProfile = () => {
           <p className="text-xs text-gray-500">Member since {memberSince}</p>
         </div>
 
-        {/* Feedback Alert */}
-        {feedback.message && (
-          <div
-            className={`mb-5 p-3 rounded-xl text-xs sm:text-sm text-center font-medium ${
-              feedback.type === "success"
-                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                : "bg-red-100 text-red-800 border border-red-300"
-            }`}
-          >
+        {/* Feedback Alert (for errors only) */}
+        {feedback.message && feedback.type === "error" && (
+          <div className="mb-5 p-3 rounded-xl text-xs sm:text-sm text-center font-medium bg-red-100 text-red-800 border border-red-300">
             {feedback.message}
           </div>
         )}
